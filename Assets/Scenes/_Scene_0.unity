@@ -352,7 +352,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f10b9ccbfa9e0696fbddd7859f6cea8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  size: {x: 50, y: 50}
+  size: {x: 1000, y: 750}
 --- !u!114 &616761405
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -365,6 +365,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b46b921f45ff8c360a050f0a72bb9f30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  regionsPerEdge: 6
+  warpStrength: 0.65
 --- !u!114 &616761406
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -377,7 +379,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 442a2fc75041bcf4fbb7a923fa765390, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  backgroundColor: {r: 0.6666667, g: 0.6666667, b: 0.6666667, a: 1}
+  sedimentColor: {r: 0.59, g: 0.44, b: 0.27, a: 1}
+  brineColor: {r: 0.18, g: 0.42, b: 0.65, a: 1}
+  bloomColor: {r: 0.27, g: 0.55, b: 0.25, a: 1}
 --- !u!4 &616761407
 Transform:
   m_ObjectHideFlags: 0
