@@ -100,3 +100,4 @@ InitTestScene*.unity*
 
 # Added by me
 /[Aa]ssets/[Ss]cripts/.vscode
+/[Bb]uild
