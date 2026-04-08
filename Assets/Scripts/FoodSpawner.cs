@@ -183,7 +183,7 @@ public class FoodSpawner : MonoBehaviour
     static Sprite CreatePlantSprite()
     {
         const int size = 32;
-        var tex = new (size, size, TextureFormat.RGBA32, false)
+        Texture2D tex = new (size, size, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,

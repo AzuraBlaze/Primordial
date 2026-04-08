@@ -75,7 +75,7 @@ public struct Genome
 
     public static Genome Random()
     {
-        return new
+        return new()
         {
             speed         = UnityEngine.Random.Range(0.2f, 0.8f),
             size          = UnityEngine.Random.Range(0.2f, 0.8f),
@@ -97,7 +97,7 @@ public struct Genome
 
     public Genome Mutate(float mutationStrength = 0.08f)
     {
-        return new
+        return new()
         {
             speed         = Mathf.Clamp01(speed        + Delta(mutationStrength)),
             size          = Mathf.Clamp01(size         + Delta(mutationStrength)),
