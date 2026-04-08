@@ -240,6 +240,8 @@ MonoBehaviour:
   map: {fileID: 616761404}
   foodSpawner: {fileID: 560741722}
   creatureManager: {fileID: 2059619207}
+  dayNightCycle: {fileID: 741013482}
+  temperatureMap: {fileID: 820153708}
 --- !u!114 &519420035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -255,6 +257,9 @@ MonoBehaviour:
   fontSize: 16
   panelBackground: {r: 0, g: 0, b: 0, a: 0.65}
   textColor: {r: 0.95, g: 0.93, b: 0.85, a: 1}
+  accentColor: {r: 0.4, g: 0.85, b: 0.55, a: 1}
+  headerColor: {r: 0.75, g: 0.9, b: 1, a: 1}
+  sliderTrack: {r: 0.25, g: 0.25, b: 0.3, a: 1}
 --- !u!1 &560741721
 GameObject:
   m_ObjectHideFlags: 0
@@ -287,6 +292,8 @@ MonoBehaviour:
   plantFoodCap: 120
   respawnInterval: 3
   respawnBatchSize: 8
+  plantSprite: {fileID: 0}
+  meatSprite: {fileID: 0}
   foodSprite: {fileID: 0}
 --- !u!4 &560741723
 Transform:
@@ -296,7 +303,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 560741721}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.9533033, y: 0.214474, z: -0.008320704}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -334,7 +341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f10b9ccbfa9e0696fbddd7859f6cea8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  size: {x: 250, y: 100}
+  size: {x: 160, y: 90}
 --- !u!114 &616761405
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -364,6 +371,7 @@ MonoBehaviour:
   sedimentColor: {r: 0.59, g: 0.44, b: 0.27, a: 1}
   brineColor: {r: 0.18, g: 0.42, b: 0.65, a: 1}
   bloomColor: {r: 0.27, g: 0.55, b: 0.25, a: 1}
+  blurRadius: 5
 --- !u!4 &616761407
 Transform:
   m_ObjectHideFlags: 0
@@ -378,6 +386,107 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &741013481
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 741013483}
+  - component: {fileID: 741013482}
+  m_Layer: 0
+  m_Name: DayNightCycle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &741013482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 741013481}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a2c8787a8c653f6c8a6ac7f03ca17f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dayDuration: 120
+  startPhase: 0.25
+  maxDarknessAlpha: 0.55
+  dawnColor: {r: 1, g: 0.75, b: 0.5, a: 1}
+  noonColor: {r: 1, g: 1, b: 1, a: 1}
+  duskColor: {r: 1, g: 0.6, b: 0.35, a: 1}
+  nightColor: {r: 0.1, g: 0.15, b: 0.4, a: 1}
+--- !u!4 &741013483
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 741013481}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &820153707
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 820153709}
+  - component: {fileID: 820153708}
+  m_Layer: 0
+  m_Name: TemperatureMap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &820153708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 820153707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63064a2d113c4cae8ab8be5a3c9ea15a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  noiseScale: 0.08
+  seedOffset: 47.3
+  showOverlay: 1
+  overlayAlpha: 0.25
+  coldColor: {r: 0.2, g: 0.5, b: 1, a: 1}
+  hotColor: {r: 1, g: 0.2, b: 0.1, a: 1}
+--- !u!4 &820153709
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 820153707}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2059619206
 GameObject:
@@ -419,7 +528,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2059619206}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.9533033, y: 0.214474, z: -0.008320704}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

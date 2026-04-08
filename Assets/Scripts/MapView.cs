@@ -7,6 +7,12 @@ public class MapView : MonoBehaviour
     public Color brineColor    = new(0.18f, 0.42f, 0.65f, 1f); // deep teal-blue
     public Color bloomColor    = new(0.27f, 0.55f, 0.25f, 1f); // earthy green
 
+    [Header("Border Smoothing")]
+    [Tooltip("Radius in pixels of the box-blur applied to biome borders. " +
+             "0 = no blur, 3–6 gives soft transitions, 10+ is very painterly.")]
+    [Range(0, 16)]
+    public int blurRadius = 5;
+
     private MapGenerator mapGenerator;
     private GameObject   backgroundQuad;
     private Texture2D    biomeTexture;
@@ -45,22 +51,92 @@ public class MapView : MonoBehaviour
             wrapMode   = TextureWrapMode.Clamp,
         };
 
-        Color[] pixels = new Color[resolution.x * resolution.y];
+        int w = resolution.x;
+        int h = resolution.y;
 
-        for (int y = 0; y < resolution.y; y++)
-        {
-            for (int x = 0; x < resolution.x; x++)
-            {
-                pixels[y * resolution.x + x] = BiomeToColor(biomeMap[x, y]);
-            }
-        }
+        // ── Step 1: Convert biome map to a linear colour array ───────────────
+        Color[] pixels = new Color[w * h];
+
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                pixels[y * w + x] = BiomeToColor(biomeMap[x, y]);
+
+        // ── Step 2: Box blur (separable — horizontal then vertical) ──────────
+        if (blurRadius > 0)
+            pixels = BoxBlurSeparable(pixels, w, h, blurRadius);
 
         biomeTexture.SetPixels(pixels);
         biomeTexture.Apply();
 
         MeshRenderer mr = backgroundQuad.GetComponent<MeshRenderer>();
         mr.material.mainTexture = biomeTexture;
-        mr.material.color       = Color.white; // Let the texture supply the color
+        mr.material.color       = Color.white;
+    }
+
+    /// <summary>
+    /// Two-pass separable box blur.  O(w*h*r) rather than O(w*h*r²).
+    /// Each pass uses a sliding-window accumulator so the radius has almost
+    /// no impact on performance.
+    /// </summary>
+    static Color[] BoxBlurSeparable(Color[] src, int w, int h, int r)
+    {
+        Color[] tmp = new Color[src.Length];
+        Color[] dst = new Color[src.Length];
+
+        // ── Horizontal pass: src → tmp ────────────────────────────────────────
+        for (int y = 0; y < h; y++)
+        {
+            int rowBase = y * w;
+
+            // Initialise the accumulator for the first window
+            Color acc = Color.black;
+            int   windowSize = 0;
+
+            for (int kx = 0; kx <= r && kx < w; kx++)
+            {
+                acc += src[rowBase + kx];
+                windowSize++;
+            }
+
+            for (int x = 0; x < w; x++)
+            {
+                tmp[rowBase + x] = acc / windowSize;
+
+                // Add the right edge of the next window
+                int addX = x + r + 1;
+                if (addX < w) { acc += src[rowBase + addX]; windowSize++; }
+
+                // Remove the left edge that has fallen out
+                int removeX = x - r;
+                if (removeX >= 0) { acc -= src[rowBase + removeX]; windowSize--; }
+            }
+        }
+
+        // ── Vertical pass: tmp → dst ─────────────────────────────────────────
+        for (int x = 0; x < w; x++)
+        {
+            Color acc = Color.black;
+            int   windowSize = 0;
+
+            for (int ky = 0; ky <= r && ky < h; ky++)
+            {
+                acc += tmp[ky * w + x];
+                windowSize++;
+            }
+
+            for (int y = 0; y < h; y++)
+            {
+                dst[y * w + x] = acc / windowSize;
+
+                int addY = y + r + 1;
+                if (addY < h) { acc += tmp[addY * w + x]; windowSize++; }
+
+                int removeY = y - r;
+                if (removeY >= 0) { acc -= tmp[removeY * w + x]; windowSize--; }
+            }
+        }
+
+        return dst;
     }
 
     Color BiomeToColor(Biome biome) => biome switch
@@ -68,7 +144,7 @@ public class MapView : MonoBehaviour
         Biome.Sediment => sedimentColor,
         Biome.Brine    => brineColor,
         Biome.Bloom    => bloomColor,
-        _              => Color.magenta, // Should be unreachable
+        _              => Color.magenta,
     };
 
     static Mesh CreateQuadMesh()

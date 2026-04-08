@@ -3,23 +3,21 @@ using UnityEngine;
 
 /// <summary>
 /// Owns the creature population. Spawns the first generation, receives
-/// offspring requests from Creature, and enforces a population cap to keep
-/// frame-rate stable.
+/// offspring requests from Creature, and enforces a population cap.
 /// </summary>
 public class CreatureManager : MonoBehaviour
 {
     public static CreatureManager Instance { get; private set; }
 
     [Header("Population")]
-    public int   startingPopulation = 20;
-    public int   populationCap      = 80;
+    public int startingPopulation = 20;
+    public int populationCap      = 80;
 
     [Header("References")]
-    public Sprite creatureSprite; // Assign a Circle sprite in the Inspector
+    public Sprite creatureSprite;
 
-    // Runtime
-    private Vector2         mapHalfSize;
-    private List<Creature>  creatures = new();
+    private Vector2        mapHalfSize;
+    private List<Creature> creatures = new();
 
     void Awake()
     {
@@ -27,7 +25,6 @@ public class CreatureManager : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>Called by Main after the map and food are ready.</summary>
     public void Initialise(Vector2 mapSize)
     {
         mapHalfSize = mapSize / 2f;
@@ -37,12 +34,9 @@ public class CreatureManager : MonoBehaviour
             Vector2 pos = new(
                 Random.Range(-mapHalfSize.x, mapHalfSize.x),
                 Random.Range(-mapHalfSize.y, mapHalfSize.y));
-
             SpawnCreature(Genome.Random(), pos, 0);
         }
     }
-
-    // ── Spawning ──────────────────────────────────────────────────────────────
 
     void SpawnCreature(Genome genome, Vector2 position, int generation)
     {
@@ -58,20 +52,19 @@ public class CreatureManager : MonoBehaviour
         creatures.Add(c);
     }
 
-    /// <summary>Called by a Creature when it reproduces.</summary>
     public void SpawnOffspring(Genome genome, Vector2 position, int generation)
     {
         if (creatures.Count >= populationCap) return;
         SpawnCreature(genome, position, generation);
     }
 
-    /// <summary>Called by a Creature just before it destroys itself.</summary>
     public void OnCreatureDied(Creature c)
     {
         creatures.Remove(c);
     }
 
-    // ── Public info ───────────────────────────────────────────────────────────
+    /// <summary>Read-only view of all living creatures (used by Creature AI).</summary>
+    public IReadOnlyList<Creature> GetAllCreatures() => creatures;
 
     public int Population => creatures.Count;
 }

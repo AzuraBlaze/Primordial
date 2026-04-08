@@ -18,16 +18,27 @@ public class FoodSpawner : MonoBehaviour
     [Tooltip("How many pellets to try to add each respawn tick.")]
     public int   respawnBatchSize  = 8;
 
-    [Header("References")]
-    public Sprite foodSprite; // Assign a Circle sprite in the Inspector
+    [Header("References – leave blank to use procedural sprites")]
+    public Sprite plantSprite; // Optional override
+    public Sprite meatSprite;  // Optional override
+
+    // ── Legacy field kept for backward compatibility ──────────────────────────
+    // If you had a 'foodSprite' assigned in the Inspector it will still
+    // serialize; we no longer use it for new food but it won't cause errors.
+    public Sprite foodSprite;
 
     // Runtime
     private MapGenerator         mapGenerator;
     private Vector2              mapSize;
     private List<Food>           activePlantFood = new();
-    private Queue<Food>          pool            = new();
+    private Queue<Food>          poolPlant       = new();
+    private Queue<Food>          poolMeat        = new();
     private List<Vector2>        bloomTiles      = new();
     private float                respawnTimer;
+
+    // Cached procedural sprites (created once)
+    private static Sprite s_PlantSprite;
+    private static Sprite s_MeatSprite;
 
     void Awake()
     {
@@ -60,8 +71,8 @@ public class FoodSpawner : MonoBehaviour
     void CacheBloomTiles()
     {
         bloomTiles.Clear();
-        Biome[,] biomeMap  = mapGenerator.BiomeMap;
-        Vector2Int res     = mapGenerator.Resolution;
+        Biome[,]   biomeMap = mapGenerator.BiomeMap;
+        Vector2Int res      = mapGenerator.Resolution;
 
         for (int py = 0; py < res.y; py++)
         {
@@ -69,7 +80,6 @@ public class FoodSpawner : MonoBehaviour
             {
                 if (biomeMap[px, py] == Biome.Bloom)
                 {
-                    // Convert pixel index → world position (matches MapGenerator's formula)
                     float wx = ((px + 0.5f) / res.x) * mapSize.x - mapSize.x * 0.5f;
                     float wy = ((py + 0.5f) / res.y) * mapSize.y - mapSize.y * 0.5f;
                     bloomTiles.Add(new Vector2(wx, wy));
@@ -102,10 +112,9 @@ public class FoodSpawner : MonoBehaviour
         if (bloomTiles.Count == 0) return;
 
         Vector2 pos = bloomTiles[Random.Range(0, bloomTiles.Count)];
-        // Jitter slightly so pellets don't stack exactly on tile centres
         pos += Random.insideUnitCircle * 0.4f;
 
-        Food f = GetFromPool();
+        Food f = GetFromPool(Food.FoodType.Plant);
         f.Initialise(pos, Food.FoodType.Plant, Random.Range(0.3f, 1f));
         activePlantFood.Add(f);
     }
@@ -115,7 +124,7 @@ public class FoodSpawner : MonoBehaviour
     /// <summary>Drop meat at a position when a creature dies (called by Creature).</summary>
     public void SpawnMeatPellet(Vector2 position, float nutrition)
     {
-        Food f = GetFromPool();
+        Food f = GetFromPool(Food.FoodType.Meat);
         f.Initialise(position, Food.FoodType.Meat, Mathf.Clamp01(nutrition));
     }
 
@@ -125,41 +134,155 @@ public class FoodSpawner : MonoBehaviour
     {
         activePlantFood.Remove(food);
         food.gameObject.SetActive(false);
-        pool.Enqueue(food);
+
+        if (food.foodType == Food.FoodType.Plant)
+            poolPlant.Enqueue(food);
+        else
+            poolMeat.Enqueue(food);
     }
 
-    Food GetFromPool()
+    Food GetFromPool(Food.FoodType type)
     {
+        Queue<Food> pool = type == Food.FoodType.Plant ? poolPlant : poolMeat;
+
         if (pool.Count > 0)
             return pool.Dequeue();
 
-        // Create a new food object
+        // Create a new food object with the appropriate sprite
         GameObject go = new("Food");
         go.transform.SetParent(transform);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        if (foodSprite != null)
-            sr.sprite = foodSprite;
-        else
-            sr.sprite = CreateCircleSprite(); // fallback procedural circle
+        sr.sprite = type == Food.FoodType.Plant
+            ? GetPlantSprite()
+            : GetMeatSprite();
 
         go.AddComponent<Food>();
         go.SetActive(false);
         return go.GetComponent<Food>();
     }
 
-    // ── Procedural circle sprite fallback ─────────────────────────────────────
+    // ── Sprite accessors ──────────────────────────────────────────────────────
 
-    /// <summary>Public accessor so CreatureManager can reuse the same fallback.</summary>
+    Sprite GetPlantSprite()
+    {
+        if (plantSprite != null) return plantSprite;
+        if (s_PlantSprite == null) s_PlantSprite = CreatePlantSprite();
+        return s_PlantSprite;
+    }
+
+    Sprite GetMeatSprite()
+    {
+        if (meatSprite != null) return meatSprite;
+        if (s_MeatSprite == null) s_MeatSprite = CreateMeatSprite();
+        return s_MeatSprite;
+    }
+
+    // ── Backward-compat public accessor used by CreatureManager ──────────────
+
+    /// <summary>
+    /// Returns a plain circle sprite — kept so CreatureManager can still call
+    /// FoodSpawner.CreateCircleSprite_Public() for creature bodies.
+    /// </summary>
     public static Sprite CreateCircleSprite_Public() => CreateCircleSprite();
+
+    // ── Procedural sprite generators ──────────────────────────────────────────
+
+    /// <summary>
+    /// Plant sprite: a four-pointed leaf/diamond shape with a small stem.
+    /// Drawn in white so Food.cs can tint it with sr.color.
+    /// </summary>
+    static Sprite CreatePlantSprite()
+    {
+        const int size = 32;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+        };
+
+        Color clear = new(0, 0, 0, 0);
+        Color white = Color.white;
+
+        float cx = size / 2f - 0.5f;
+        float cy = size / 2f;      // Centre, slightly raised to leave room for stem
+
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            float dx = x - cx;
+            float dy = y - cy;
+
+            // Four-petal diamond: |dx|/a + |dy|/b <= 1  (a squashed rhombus)
+            float a = size * 0.38f;   // horizontal half-extent
+            float b = size * 0.46f;   // vertical   half-extent
+            bool inLeaf = (Mathf.Abs(dx) / a + Mathf.Abs(dy) / b) <= 1f;
+
+            // Thin vertical stem below the centre
+            bool inStem = Mathf.Abs(dx) <= 1.2f && dy < 0f && dy > -(size * 0.38f);
+
+            tex.SetPixel(x, y, (inLeaf || inStem) ? white : clear);
+        }
+
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
+    /// <summary>
+    /// Meat sprite: a rough teardrop / bone-chunk shape.
+    /// Also drawn in white for tinting.
+    /// </summary>
+    static Sprite CreateMeatSprite()
+    {
+        const int size = 32;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+        };
+
+        Color clear = new(0, 0, 0, 0);
+        Color white = Color.white;
+
+        float cx = size / 2f - 0.5f;
+        float cy = size / 2f - 0.5f;
+
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            float dx = x - cx;
+            float dy = y - cy;
+
+            // Main body: slightly squashed circle
+            float bodyR = size * 0.34f;
+            bool inBody = (dx * dx) / (bodyR * bodyR) + (dy * dy) / ((bodyR * 0.82f) * (bodyR * 0.82f)) <= 1f;
+
+            // Top nub: smaller circle offset upward (teardrop / drumstick silhouette)
+            float nubR  = size * 0.16f;
+            float nubCy = cy + size * 0.26f;
+            float ndx   = x - cx;
+            float ndy   = y - nubCy;
+            bool inNub  = ndx * ndx + ndy * ndy <= nubR * nubR;
+
+            // Connecting neck between body and nub — a thin vertical band
+            bool inNeck = Mathf.Abs(dx) <= size * 0.10f
+                       && y > cy + size * 0.12f
+                       && y < nubCy + nubR;
+
+            tex.SetPixel(x, y, (inBody || inNub || inNeck) ? white : clear);
+        }
+
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
 
     static Sprite CreateCircleSprite()
     {
-        int    size    = 32;
-        float  radius  = size / 2f;
-        var    tex     = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        Color  clear   = new(0, 0, 0, 0);
-        Color  white   = Color.white;
+        int   size   = 32;
+        float radius = size / 2f;
+        var   tex    = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color clear  = new(0, 0, 0, 0);
+        Color white  = Color.white;
 
         for (int y = 0; y < size; y++)
         for (int x = 0; x < size; x++)

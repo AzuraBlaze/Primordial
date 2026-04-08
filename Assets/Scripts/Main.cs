@@ -3,9 +3,11 @@ using UnityEngine;
 public class Main : MonoBehaviour
 {
     [Header("References")]
-    public Map            map;
-    public FoodSpawner    foodSpawner;
+    public Map             map;
+    public FoodSpawner     foodSpawner;
     public CreatureManager creatureManager;
+    public DayNightCycle   dayNightCycle;
+    public TemperatureMap  temperatureMap;
 
     private CameraController cameraController;
 
@@ -13,16 +15,24 @@ public class Main : MonoBehaviour
     {
         cameraController = GetComponent<CameraController>();
 
-        // 1. Generate the map first — FoodSpawner needs BiomeMap to be ready.
+        // 1. Generate the map first — everything else depends on it.
         map.Generate();
 
-        // 2. Set camera bounds.
+        // 2. Camera bounds.
         cameraController.SetMapBounds(map.size);
 
-        // 3. Initialise food (reads BiomeMap to find Bloom tiles).
+        // 3. Day/Night overlay bounds.
+        if (dayNightCycle != null)
+            dayNightCycle.SetMapBounds(map.size);
+
+        // 4. Temperature map.
+        if (temperatureMap != null)
+            temperatureMap.Initialise(map.size);
+
+        // 5. Food (reads BiomeMap for Bloom tiles).
         foodSpawner.Initialise(map.GetComponent<MapGenerator>(), map.size);
 
-        // 4. Spawn the starting creature population.
+        // 6. Creature population.
         creatureManager.Initialise(map.size);
     }
 }
