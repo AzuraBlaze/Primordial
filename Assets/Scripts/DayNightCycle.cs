@@ -24,20 +24,20 @@ public class DayNightCycle : MonoBehaviour
     [Range(0f, 0.85f)]
     public float maxDarknessAlpha = 0.55f;
 
-    [Header("Colours")]
-    public Color dawnColor  = new(1.0f, 0.75f, 0.50f, 1f);
-    public Color noonColor  = new(1.0f, 1.00f, 1.00f, 1f);
-    public Color duskColor  = new(1.0f, 0.60f, 0.35f, 1f);
-    public Color nightColor = new(0.1f, 0.15f, 0.40f, 1f);
+    [Header("Colors")]
+    public Color dawnColor  = new (1.0f, 0.75f, 0.50f, 1f);
+    public Color noonColor  = new (1.0f, 1.00f, 1.00f, 1f);
+    public Color duskColor  = new (1.0f, 0.60f, 0.35f, 1f);
+    public Color nightColor = new (0.1f, 0.15f, 0.40f, 1f);
 
-    // ── Public read-only state ────────────────────────────────────────────────
-    /// <summary>Current phase in [0,1). 0/1=midnight, 0.5=noon.</summary>
+    /* ======================================== Public (read-only) ======================================== */
+    /// <summary>Current phase in [0,1). 0/1 = midnight, 0.5 = noon.</summary>
     public float Phase { get; private set; }
 
     /// <summary>True when the sun is above the horizon (phase in [0.2, 0.8]).</summary>
     public bool IsDay => Phase > 0.2f && Phase < 0.8f;
 
-    // ── Private ───────────────────────────────────────────────────────────────
+    /* ======================================== Private ======================================== */
     private GameObject overlayQuad;
     private MeshRenderer overlayRenderer;
 
@@ -51,11 +51,11 @@ public class DayNightCycle : MonoBehaviour
 
     void CreateOverlay()
     {
-        overlayQuad = new GameObject("DayNightOverlay");
+        overlayQuad = new ("DayNightOverlay");
         overlayQuad.transform.SetParent(transform);
 
         // Place it far in front of the map background but behind creatures
-        overlayQuad.transform.localPosition = new Vector3(0f, 0f, -0.5f);
+        overlayQuad.transform.localPosition = new (0f, 0f, -0.5f);
 
         MeshFilter mf = overlayQuad.AddComponent<MeshFilter>();
         overlayRenderer = overlayQuad.AddComponent<MeshRenderer>();
@@ -63,8 +63,8 @@ public class DayNightCycle : MonoBehaviour
         mf.mesh = CreateFullscreenQuad();
 
         // Use a transparent-capable shader
-        Material mat = new Material(Shader.Find("Sprites/Default"));
-        mat.color = new Color(0f, 0f, 0f, 0f);
+        Material mat = new (Shader.Find("Sprites/Default"));
+        mat.color = new (0f, 0f, 0f, 0f);
         overlayRenderer.material = mat;
         overlayRenderer.sortingOrder = 10; // above everything except UI
     }
@@ -73,7 +73,7 @@ public class DayNightCycle : MonoBehaviour
     {
         float w = mapSize.x + padding * 2f;
         float h = mapSize.y + padding * 2f;
-        overlayQuad.transform.localScale = new Vector3(w, h, 1f);
+        overlayQuad.transform.localScale = new (w, h, 1f);
     }
 
     void Update()
@@ -85,11 +85,11 @@ public class DayNightCycle : MonoBehaviour
     void ApplyOverlay()
     {
         // Compute darkness: deepest at midnight, zero at noon
-        // Use a smooth curve: darkness = cos(phase * 2π) mapped to [0,1]
+        // Use a smooth curve: darkness = cos(phase * 2pi) mapped to [0,1]
         float darknessT = Mathf.Clamp01((Mathf.Cos(Phase * Mathf.PI * 2f) + 1f) * 0.5f);
         // darknessT = 1 at midnight, 0 at noon
 
-        // Tint colour: blend through dawn/noon/dusk/night based on phase
+        // Tint color: blend through dawn/noon/dusk/night based on phase
         Color tint = PhaseToColor(Phase);
         tint.a = darknessT * maxDarknessAlpha;
         overlayRenderer.material.color = tint;
@@ -97,25 +97,25 @@ public class DayNightCycle : MonoBehaviour
 
     Color PhaseToColor(float p)
     {
-        // p: 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk
+        // p: 0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk
         if (p < 0.25f)
         {
-            // midnight → dawn
+            // midnight --> dawn
             return Color.Lerp(nightColor, dawnColor, p / 0.25f);
         }
         else if (p < 0.5f)
         {
-            // dawn → noon
+            // dawn --> noon
             return Color.Lerp(dawnColor, noonColor, (p - 0.25f) / 0.25f);
         }
         else if (p < 0.75f)
         {
-            // noon → dusk
+            // noon --> dusk
             return Color.Lerp(noonColor, duskColor, (p - 0.5f) / 0.25f);
         }
         else
         {
-            // dusk → midnight
+            // dusk --> midnight
             return Color.Lerp(duskColor, nightColor, (p - 0.75f) / 0.25f);
         }
     }
@@ -124,15 +124,15 @@ public class DayNightCycle : MonoBehaviour
     {
         Mesh mesh = new() { name = "DayNightQuad" };
         mesh.vertices  = new Vector3[] {
-            new(-0.5f, -0.5f, 0f), new(0.5f, -0.5f, 0f),
-            new( 0.5f,  0.5f, 0f), new(-0.5f, 0.5f, 0f) };
+            new (-0.5f, -0.5f, 0f), new (0.5f, -0.5f, 0f),
+            new ( 0.5f,  0.5f, 0f), new (-0.5f, 0.5f, 0f) };
         mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
         mesh.uv        = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
         mesh.RecalculateNormals();
         return mesh;
     }
 
-    // ── Public helpers ────────────────────────────────────────────────────────
+    /* ======================================== Public Helpers ======================================== */
 
     /// <summary>Returns a short human-readable label for the current time of day.</summary>
     public string TimeLabel()

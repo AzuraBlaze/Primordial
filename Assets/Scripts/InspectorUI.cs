@@ -4,24 +4,24 @@ using UnityEngine;
 /// Handles the HUD and the creature inspection/editing panel.
 ///
 /// Features:
-///   • Population counter + day/night clock (top-left)
-///   • Temperature overlay toggle button (top-left)
-///   • Click a creature to open its genome panel
-///   • All genome traits are editable via sliders
-///   • Stats (hunger, age) shown read-only
-///   • "Randomise" button re-rolls the genome
+///   - Population counter + day/night clock (top-left)
+///   - Temperature overlay toggle button (top-left)
+///   - Click a creature to open its genome panel
+///   - All genome traits are editable via sliders
+///   - Stats (hunger, age) shown read-only
+///   - "Randomise" button re-rolls the genome
 /// </summary>
 public class InspectorUI : MonoBehaviour
 {
     [Header("Appearance")]
     public int   fontSize        = 15;
-    public Color panelBackground = new(0.05f, 0.05f, 0.10f, 0.80f);
-    public Color textColor       = new(0.95f, 0.93f, 0.85f, 1f);
-    public Color accentColor     = new(0.40f, 0.85f, 0.55f, 1f);
-    public Color headerColor     = new(0.75f, 0.90f, 1.00f, 1f);
-    public Color sliderTrack     = new(0.25f, 0.25f, 0.30f, 1f);
+    public Color panelBackground = new (0.05f, 0.05f, 0.10f, 0.80f);
+    public Color textColor       = new (0.95f, 0.93f, 0.85f, 1f);
+    public Color accentColor     = new (0.40f, 0.85f, 0.55f, 1f);
+    public Color headerColor     = new (0.75f, 0.90f, 1.00f, 1f);
+    public Color sliderTrack     = new (0.25f, 0.25f, 0.30f, 1f);
 
-    // ── Runtime ───────────────────────────────────────────────────────────────
+    /* ======================================== Runtime ======================================== */
     private Camera    cam;
     private Creature  selected;
     private GUIStyle  labelStyle;
@@ -36,7 +36,7 @@ public class InspectorUI : MonoBehaviour
     private Texture2D thumbTex;
     private bool      stylesBuilt;
 
-    // Editing state – local copy of the genome being edited
+    // Editing state - local copy of the genome being edited
     private Genome editGenome;
     private bool   isEditing; // true when a creature is selected and we are showing sliders
 
@@ -60,7 +60,7 @@ public class InspectorUI : MonoBehaviour
         HandleClick();
     }
 
-    // ── Click detection ───────────────────────────────────────────────────────
+    /* ======================================== Click Detection ======================================== */
     void HandleClick()
     {
         if (!Input.GetMouseButtonUp(0)) return;
@@ -73,7 +73,7 @@ public class InspectorUI : MonoBehaviour
         }
 
         Vector3 worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
-        Vector2 point    = new(worldPos.x, worldPos.y);
+        Vector2 point    = new (worldPos.x, worldPos.y);
 
         float    pickRadius = 0.8f;
         Creature closest    = null;
@@ -81,7 +81,7 @@ public class InspectorUI : MonoBehaviour
 
         foreach (Creature c in FindObjectsByType<Creature>(FindObjectsSortMode.None))
         {
-            if (c == null || c.IsDead) continue;
+            if (c == null || c.isDead) continue;
             float d = Vector2.Distance(point, (Vector2)c.transform.position);
             if (d < closestDist) { closestDist = d; closest = c; }
         }
@@ -99,13 +99,13 @@ public class InspectorUI : MonoBehaviour
         }
     }
 
-    // ── GUI ───────────────────────────────────────────────────────────────────
+    /* ======================================== GUI ======================================== */
     void OnGUI()
     {
         if (!stylesBuilt) BuildStyles();
 
         DrawHUD();
-        if (isEditing && selected != null && !selected.IsDead)
+        if (isEditing && selected != null && !selected.isDead)
             DrawInspectorPanel();
         else
         {
@@ -114,7 +114,7 @@ public class InspectorUI : MonoBehaviour
         }
     }
 
-    // ── HUD ───────────────────────────────────────────────────────────────────
+    /* ======================================== HUD ======================================== */
     void DrawHUD()
     {
         int pop = CreatureManager.Instance != null ? CreatureManager.Instance.Population : 0;
@@ -137,13 +137,13 @@ public class InspectorUI : MonoBehaviour
         }
 
         // Instruction
-        GUIStyle small = new GUIStyle(labelStyle) { fontSize = 12 };
-        small.normal.textColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        GUIStyle small = new (labelStyle) { fontSize = 12 };
+        small.normal.textColor = new (0.7f, 0.7f, 0.7f, 1f);
         GUI.Label(new Rect(10, Screen.height - 26, 320, 22),
             "Click creature to inspect & edit its genome", small);
     }
 
-    // ── Inspector panel ───────────────────────────────────────────────────────
+    /* ======================================== Inspector Panel ======================================== */
     void DrawInspectorPanel()
     {
         // Estimate content height: header + 13 trait rows + stat rows + buttons
@@ -161,22 +161,22 @@ public class InspectorUI : MonoBehaviour
 
         GUI.Box(new Rect(panelX, panelY, PanelW, panelH), GUIContent.none, boxStyle);
 
-        // Colour swatch
+        // Color swatch
         Color prev = GUI.color;
         GUI.color  = editGenome.ToColor();
         GUI.Box(new Rect(panelX - 14, panelY + 4, 10, 10), GUIContent.none, boxStyle);
         GUI.color  = prev;
 
         // Scrollable inner area
-        Rect outerRect  = new Rect(panelX + 2, panelY + 2, PanelW - 4, panelH - 4);
-        Rect innerRect  = new Rect(0, 0, PanelW - 20, contentH);
+        Rect outerRect  = new (panelX + 2, panelY + 2, PanelW - 4, panelH - 4);
+        Rect innerRect  = new (0, 0, PanelW - 20, contentH);
         scrollPos = GUI.BeginScrollView(outerRect, scrollPos, innerRect, false, false);
 
         float y   = PanelPadY;
         float lx  = PanelPadX;
         float lw  = PanelW - PanelPadX * 2 - 16; // subtract scrollbar width
 
-        // ── Header ────────────────────────────────────────────────────────────
+        /* ======================================== Header ======================================== */
         GUI.Label(new Rect(lx, y, lw, 22), $"CREATURE  Gen {selected.generation}", headerStyle);
         y += 22;
 
@@ -189,26 +189,26 @@ public class InspectorUI : MonoBehaviour
 
         DrawDivider(lx, y, lw); y += 6;
 
-        // ── Stats (read-only) ─────────────────────────────────────────────────
+        /* ======================================== Stats (read-only) ======================================== */
         DrawStatRow(ref y, lx, lw, "Hunger",   $"{selected.hunger:P0}");
         DrawStatRow(ref y, lx, lw, "Age",      $"{selected.age:F0} / {editGenome.MaxAge:F0} s");
         DrawStatRow(ref y, lx, lw, "Activity", GetActivityStr());
 
         DrawDivider(lx, y, lw); y += 6;
 
-        // ── Editable traits ───────────────────────────────────────────────────
+        /* ======================================== Editable Traits ======================================== */
         GUI.Label(new Rect(lx, y, lw, 18), "GENOME  (drag to edit)", headerStyle);
         y += 22;
 
-        editGenome.speed       = DrawTraitSlider(ref y, lx, lw, "Speed",       editGenome.speed);
-        editGenome.size        = DrawTraitSlider(ref y, lx, lw, "Size",        editGenome.size);
-        editGenome.lifespan    = DrawTraitSlider(ref y, lx, lw, "Lifespan",    editGenome.lifespan);
-        editGenome.diet        = DrawTraitSlider(ref y, lx, lw, "Diet H→C",    editGenome.diet);
-        editGenome.fertility   = DrawTraitSlider(ref y, lx, lw, "Fertility",   editGenome.fertility);
-        editGenome.vision      = DrawTraitSlider(ref y, lx, lw, "Vision",      editGenome.vision);
-        editGenome.aggression  = DrawTraitSlider(ref y, lx, lw, "Aggression",  editGenome.aggression);
-        editGenome.fear        = DrawTraitSlider(ref y, lx, lw, "Fear",        editGenome.fear);
-        editGenome.flocking    = DrawTraitSlider(ref y, lx, lw, "Flocking",    editGenome.flocking);
+        editGenome.speed         = DrawTraitSlider(ref y, lx, lw, "Speed",       editGenome.speed);
+        editGenome.size          = DrawTraitSlider(ref y, lx, lw, "Size",        editGenome.size);
+        editGenome.lifespan      = DrawTraitSlider(ref y, lx, lw, "Lifespan",    editGenome.lifespan);
+        editGenome.diet          = DrawTraitSlider(ref y, lx, lw, "Diet",    editGenome.diet);
+        editGenome.fertility     = DrawTraitSlider(ref y, lx, lw, "Fertility",   editGenome.fertility);
+        editGenome.vision        = DrawTraitSlider(ref y, lx, lw, "Vision",      editGenome.vision);
+        editGenome.aggression    = DrawTraitSlider(ref y, lx, lw, "Aggression",  editGenome.aggression);
+        editGenome.fear          = DrawTraitSlider(ref y, lx, lw, "Fear",        editGenome.fear);
+        editGenome.flocking      = DrawTraitSlider(ref y, lx, lw, "Flocking",    editGenome.flocking);
         editGenome.tempTolerance = DrawTraitSlider(ref y, lx, lw, "Temp Tol", editGenome.tempTolerance);
         editGenome.daylightPref  = DrawTraitSlider(ref y, lx, lw, "Day Pref", editGenome.daylightPref);
 
@@ -221,7 +221,7 @@ public class InspectorUI : MonoBehaviour
         y += 4;
         DrawDivider(lx, y, lw); y += 8;
 
-        // ── Buttons ───────────────────────────────────────────────────────────
+        /* ======================================== Buttons ======================================== */
         float bw = (lw - 4) / 2f;
 
         if (GUI.Button(new Rect(lx, y, bw, 24), "Apply", buttonStyle))
@@ -245,12 +245,12 @@ public class InspectorUI : MonoBehaviour
         GUI.EndScrollView();
     }
 
-    // ── Layout helpers ────────────────────────────────────────────────────────
+    /* ======================================== Layout Helpers ======================================== */
 
     void DrawStatRow(ref float y, float x, float w, string label, string value)
     {
         GUI.Label(new Rect(x, y, w * 0.55f, 18), label, labelStyle);
-        GUIStyle valStyle = new GUIStyle(labelStyle);
+        GUIStyle valStyle = new (labelStyle);
         valStyle.normal.textColor = accentColor;
         valStyle.alignment = TextAnchor.MiddleRight;
         GUI.Label(new Rect(x + w * 0.45f, y, w * 0.55f, 18), value, valStyle);
@@ -262,9 +262,10 @@ public class InspectorUI : MonoBehaviour
         GUI.Label(new Rect(x, y, w * 0.40f, 18), label, labelStyle);
         float newVal = GUI.HorizontalSlider(
             new Rect(x + w * 0.40f, y + 3, w * 0.45f, SliderH),
-            value, 0f, 1f, sliderStyle, thumbStyle);
+            value, 0f, 1f, sliderStyle, thumbStyle
+        );
 
-        GUIStyle numStyle = new GUIStyle(labelStyle);
+        GUIStyle numStyle = new (labelStyle);
         numStyle.alignment = TextAnchor.MiddleRight;
         numStyle.fontSize  = 12;
         GUI.Label(new Rect(x + w * 0.86f, y, w * 0.14f, 18),
@@ -277,7 +278,7 @@ public class InspectorUI : MonoBehaviour
     void DrawDivider(float x, float y, float w)
     {
         Color prev = GUI.color;
-        GUI.color  = new Color(0.3f, 0.3f, 0.35f, 0.8f);
+        GUI.color  = new (0.3f, 0.3f, 0.35f, 0.8f);
         GUI.Box(new Rect(x, y, w, 1), GUIContent.none);
         GUI.color  = prev;
     }
@@ -290,7 +291,7 @@ public class InspectorUI : MonoBehaviour
         return $"Awake ({a:P0})";
     }
 
-    // ── Style builders ────────────────────────────────────────────────────────
+    /* ======================================== Style Builders ======================================== */
     void BuildStyles()
     {
         bgTex    = MakeTex(panelBackground);
@@ -298,26 +299,26 @@ public class InspectorUI : MonoBehaviour
         trackTex = MakeTex(sliderTrack);
         thumbTex = MakeTex(accentColor);
 
-        boxStyle = new GUIStyle(GUI.skin.box)
+        boxStyle = new (GUI.skin.box)
         {
             normal = { background = bgTex }
         };
 
-        labelStyle = new GUIStyle(GUI.skin.label)
+        labelStyle = new (GUI.skin.label)
         {
             fontSize = fontSize,
             wordWrap = false,
             normal   = { textColor = textColor },
         };
 
-        headerStyle = new GUIStyle(labelStyle)
+        headerStyle = new (labelStyle)
         {
             fontSize   = fontSize,
             fontStyle  = FontStyle.Bold,
             normal     = { textColor = headerColor },
         };
 
-        buttonStyle = new GUIStyle(GUI.skin.button)
+        buttonStyle = new (GUI.skin.button)
         {
             fontSize  = fontSize - 1,
             normal    = { textColor = textColor, background = bgTex },
@@ -326,11 +327,11 @@ public class InspectorUI : MonoBehaviour
         };
 
         // Sliders
-        sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
+        sliderStyle = new (GUI.skin.horizontalSlider);
         sliderStyle.normal.background = trackTex;
         sliderStyle.fixedHeight       = 4f;
 
-        thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb);
+        thumbStyle = new (GUI.skin.horizontalSliderThumb);
         thumbStyle.normal.background = thumbTex;
         thumbStyle.fixedWidth        = 10f;
         thumbStyle.fixedHeight       = 14f;
@@ -340,7 +341,7 @@ public class InspectorUI : MonoBehaviour
 
     static Texture2D MakeTex(Color c)
     {
-        Texture2D t = new Texture2D(1, 1);
+        Texture2D t = new (1, 1);
         t.SetPixel(0, 0, c);
         t.Apply();
         return t;

@@ -31,21 +31,22 @@ public class CreatureManager : MonoBehaviour
 
         for (int i = 0; i < startingPopulation; i++)
         {
-            Vector2 pos = new(
+            Vector2 pos = new (
                 Random.Range(-mapHalfSize.x, mapHalfSize.x),
-                Random.Range(-mapHalfSize.y, mapHalfSize.y));
+                Random.Range(-mapHalfSize.y, mapHalfSize.y)
+            );
             SpawnCreature(Genome.Random(), pos, 0);
         }
     }
 
     void SpawnCreature(Genome genome, Vector2 position, int generation)
     {
-        GameObject go = new("Creature");
+        GameObject go = new ("Creature");
         go.transform.SetParent(transform);
-        go.transform.position = new Vector3(position.x, position.y, 0f);
+        go.transform.position = new (position.x, position.y, 0f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = creatureSprite != null ? creatureSprite : FoodSpawner.CreateCircleSprite_Public();
+        sr.sprite = creatureSprite != null ? creatureSprite : FoodSpawner.CreateCircleSprite();
 
         Creature c = go.AddComponent<Creature>();
         c.Initialise(genome, mapHalfSize, generation);

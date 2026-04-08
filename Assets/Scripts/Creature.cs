@@ -1,31 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// A single creature driven by its Genome.
-///
-/// Systems implemented:
-///   • Speed / Size / Diet / Fertility — as before
-///   • Lifespan     — dies of old age after MaxAge seconds
-///   • Vision       — all food/threat seeking uses VisionRange instead of fixed 6
-///   • Aggression   — hunts nearby creatures, deals hunger damage on contact
-///   • Fear         — flees creatures that are larger and aggressive
-///   • Flocking     – steers toward centroid of nearby peers when well-fed
-///   • TempTolerance– takes heat/cold stress when outside comfort zone
-///   • DaylightPref – activity multiplier; when nearly inactive the creature is "asleep"
-///       (it stops moving and recovers a small amount of hunger per second)
-/// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 public class Creature : MonoBehaviour
 {
-    // ── Public state ─────────────────────────────────────────────────────────
+    /* ======================================== Public ======================================== */
     public Genome genome     { get; private set; }
-    public float  hunger     { get; private set; }   // 0=starving, 1=full
+    public float  hunger     { get; private set; }   // 0 = starving, 1 = full
     public float  age        { get; private set; }   // seconds alive
     public int    generation { get; private set; }
-    public bool   IsDead     { get; private set; }
+    public bool   isDead     { get; private set; }
 
-    // ── Tunables ─────────────────────────────────────────────────────────────
+    /* ======================================== Adjustable ======================================== */
     const float BaseSpeed         = 3f;
     const float HungerDecayRate   = 0.04f;
     const float EatRange          = 0.6f;
@@ -45,7 +31,7 @@ public class Creature : MonoBehaviour
     const float SleepThreshold    = 0.15f;   // activity below this = sleeping
     const float SleepHealRate     = 0.02f;   // hunger recovered while sleeping
 
-    // ── Private state ─────────────────────────────────────────────────────────
+    /* ======================================== Private ======================================== */
     private SpriteRenderer sr;
     private Vector2        mapHalfSize;
     private Vector2        wanderTarget;
@@ -55,7 +41,7 @@ public class Creature : MonoBehaviour
     private Creature       targetPrey;
     private Creature       fleeTarget;
 
-    // ── Initialisation ────────────────────────────────────────────────────────
+    /* ======================================== Init ======================================== */
     public void Initialise(Genome g, Vector2 mapHalf, int gen = 0)
     {
         genome       = g;
@@ -63,7 +49,7 @@ public class Creature : MonoBehaviour
         generation   = gen;
         hunger       = Random.Range(0.5f, 1f);
         age          = 0f;
-        IsDead       = false;
+        isDead       = false;
         reproduceCooldownTimer = Random.Range(0f, ReproduceCooldown);
 
         sr = GetComponent<SpriteRenderer>();
@@ -87,10 +73,10 @@ public class Creature : MonoBehaviour
         transform.localScale = Vector3.one * radius * 2f;
     }
 
-    // ── Unity update ──────────────────────────────────────────────────────────
+    /* ======================================== Updates ======================================== */
     void Update()
     {
-        if (IsDead) return;
+        if (isDead) return;
 
         age += Time.deltaTime;
 
@@ -125,14 +111,14 @@ public class Creature : MonoBehaviour
         }
     }
 
-    // ── Day/Night ─────────────────────────────────────────────────────────────
+    /* ======================================== Day/Night ======================================== */
     float GetActivityLevel()
     {
         if (DayNightCycle.Instance == null) return 1f;
         return genome.DaylightActivity(DayNightCycle.Instance.Phase);
     }
 
-    // ── Temperature ───────────────────────────────────────────────────────────
+    /* ======================================== Temperature ======================================== */
     void ApplyTemperatureStress()
     {
         if (TemperatureMap.Instance == null) return;
@@ -142,14 +128,14 @@ public class Creature : MonoBehaviour
         hunger = Mathf.Max(0f, hunger - stress * TempStressRate * Time.deltaTime);
     }
 
-    // ── Movement ──────────────────────────────────────────────────────────────
+    /* ======================================== Movement ======================================== */
     void SeekOrWander(float activityMultiplier)
     {
         // Determine highest-priority target
         Vector2 moveTarget = wanderTarget;
         bool    hasPriority = false;
 
-        // 1. Fear: flee threats
+        // Fear: flee threats
         fleeTarget = FindThreat();
         if (fleeTarget != null)
         {
@@ -160,7 +146,7 @@ public class Creature : MonoBehaviour
             hasPriority  = true;
         }
 
-        // 2. Aggression: chase prey (only if not fleeing)
+        // Aggression: chase prey (only if not fleeing)
         if (!hasPriority && genome.aggression > 0.3f && hunger < 0.7f)
         {
             targetPrey = FindPrey();
@@ -175,7 +161,7 @@ public class Creature : MonoBehaviour
             targetPrey = null;
         }
 
-        // 3. Food seeking (hunger-driven)
+        // Food seeking (hunger-based)
         if (!hasPriority && hunger < 0.6f)
         {
             Food nearby = FindNearestSuitableFood();
@@ -187,7 +173,7 @@ public class Creature : MonoBehaviour
             }
         }
 
-        // 4. Flocking (when well-fed and not otherwise occupied)
+        // Flocking (when well-fed and not otherwise occupied)
         if (!hasPriority && genome.flocking > 0.2f && hunger > 0.5f)
         {
             Vector2 flockCenter;
@@ -210,14 +196,16 @@ public class Creature : MonoBehaviour
         Vector2 delta = moveTarget - pos;
 
         if (delta.magnitude < ArrivalThreshold && !hasPriority)
+        {
             PickWanderTarget();
+        }
         else if (delta.magnitude > ArrivalThreshold)
         {
             float speed  = Mathf.Lerp(0.5f, 1f, genome.speed) * BaseSpeed * activityMultiplier;
             Vector2 newPos = pos + delta.normalized * speed * Time.deltaTime;
             newPos.x = Mathf.Clamp(newPos.x, -mapHalfSize.x, mapHalfSize.x);
             newPos.y = Mathf.Clamp(newPos.y, -mapHalfSize.y, mapHalfSize.y);
-            transform.position = new Vector3(newPos.x, newPos.y, 0f);
+            transform.position = new (newPos.x, newPos.y, 0f);
         }
     }
 
@@ -233,12 +221,13 @@ public class Creature : MonoBehaviour
         } while ((Mathf.Abs(candidate.x) > mapHalfSize.x ||
                   Mathf.Abs(candidate.y) > mapHalfSize.y) && tries < 10);
 
-        wanderTarget = new Vector2(
+        wanderTarget = new (
             Mathf.Clamp(candidate.x, -mapHalfSize.x, mapHalfSize.x),
-            Mathf.Clamp(candidate.y, -mapHalfSize.y, mapHalfSize.y));
+            Mathf.Clamp(candidate.y, -mapHalfSize.y, mapHalfSize.y)
+        );
     }
 
-    // ── Food seeking ──────────────────────────────────────────────────────────
+    /* ======================================== Food ======================================== */
     void TryEat()
     {
         if (targetFood == null || !targetFood.gameObject.activeSelf) { targetFood = null; return; }
@@ -281,7 +270,7 @@ public class Creature : MonoBehaviour
         return best;
     }
 
-    // ── Aggression / Fear ─────────────────────────────────────────────────────
+    /* ======================================== Aggression/Fear ======================================== */
     Creature FindPrey()
     {
         // Look for smaller or similar-sized creatures within vision range
@@ -293,7 +282,7 @@ public class Creature : MonoBehaviour
 
         foreach (Creature c in CreatureManager.Instance?.GetAllCreatures() ?? new List<Creature>())
         {
-            if (c == null || c == this || c.IsDead) continue;
+            if (c == null || c == this || c.isDead) continue;
             float dist = Vector2.Distance(myPos, (Vector2)c.transform.position);
             if (dist > range) continue;
             // Only attack creatures that are smaller (size advantage)
@@ -314,7 +303,7 @@ public class Creature : MonoBehaviour
 
         foreach (Creature c in CreatureManager.Instance?.GetAllCreatures() ?? new List<Creature>())
         {
-            if (c == null || c == this || c.IsDead) continue;
+            if (c == null || c == this || c.isDead) continue;
             if (c.genome.aggression < 0.3f) continue; // only fear aggressive ones
             if (c.genome.size < genome.size * 0.9f) continue; // not threatened by smaller ones
             float dist = Vector2.Distance(myPos, (Vector2)c.transform.position);
@@ -325,7 +314,7 @@ public class Creature : MonoBehaviour
 
     void TryAttack()
     {
-        if (targetPrey == null || targetPrey.IsDead) { targetPrey = null; return; }
+        if (targetPrey == null || targetPrey.isDead) { targetPrey = null; return; }
         if (attackCooldownTimer < AttackCooldown) return;
         if (genome.aggression < 0.3f) return;
 
@@ -343,7 +332,7 @@ public class Creature : MonoBehaviour
         if (hunger <= 0f) Die();
     }
 
-    // ── Flocking ──────────────────────────────────────────────────────────────
+    /* ======================================== Flocking ======================================== */
     bool TryGetFlockCenter(out Vector2 center)
     {
         center = Vector2.zero;
@@ -353,7 +342,7 @@ public class Creature : MonoBehaviour
 
         foreach (Creature c in CreatureManager.Instance?.GetAllCreatures() ?? new List<Creature>())
         {
-            if (c == null || c == this || c.IsDead) continue;
+            if (c == null || c == this || c.isDead) continue;
             // Same rough species: similar hue
             if (Mathf.Abs(c.genome.hue - genome.hue) > 0.15f) continue;
             float dist = Vector2.Distance(myPos, (Vector2)c.transform.position);
@@ -367,7 +356,7 @@ public class Creature : MonoBehaviour
         return true;
     }
 
-    // ── Reproduction ──────────────────────────────────────────────────────────
+    /* ======================================== Reproduction ======================================== */
     void TryReproduce()
     {
         if (hunger < ReproduceHunger) return;
@@ -386,22 +375,22 @@ public class Creature : MonoBehaviour
         CreatureManager.Instance?.SpawnOffspring(genome.Mutate(), childPos, generation + 1);
     }
 
-    // ── Death ─────────────────────────────────────────────────────────────────
+    /* ======================================== Death ======================================== */
     void Die()
     {
-        if (IsDead) return;
-        IsDead = true;
+        if (isDead) return;
+        isDead = true;
         FoodSpawner.Instance?.SpawnMeatPellet(transform.position, genome.size * 0.8f);
         CreatureManager.Instance?.OnCreatureDied(this);
         Destroy(gameObject);
     }
 
-    // ── Summary (used by InspectorUI) ─────────────────────────────────────────
+    /* ======================================== Summary (for InspectorUI) ======================================== */
     public string GetGenomeSummary()
     {
         string dietLabel = genome.diet < 0.33f ? "Herbivore"
                          : genome.diet < 0.67f ? "Omnivore"
-                         :                        "Carnivore";
+                         :                       "Carnivore";
         string timeLabel = genome.daylightPref < 0.35f ? "Nocturnal"
                          : genome.daylightPref > 0.65f ? "Diurnal"
                          :                               "Crepuscular";

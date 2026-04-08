@@ -41,7 +41,7 @@ public class MapGenerator : MonoBehaviour
         {
             for (int px = 0; px < resX; px++)
             {
-                // Map pixel --> world space (centred on the map).
+                // Map pixel => world space (centred on the map).
                 float wx = ((px + 0.5f) / resX) * mapSize.x - mapSize.x * 0.5f;
                 float wy = ((py + 0.5f) / resY) * mapSize.y - mapSize.y * 0.5f;
 
@@ -60,7 +60,7 @@ public class MapGenerator : MonoBehaviour
                 // Find the nearest Worley site to the warped point
                 int nearestIndex = NearestSiteIndex(sampleX, sampleY, sites);
 
-                // Map site index --> biome using a stable, repeatable hash
+                // Map site index => biome using a stable, repeatable hash
                 BiomeMap[px, py] = SiteIndexToBiome(nearestIndex);
             }
         }
@@ -86,7 +86,8 @@ public class MapGenerator : MonoBehaviour
 
                 sites.Add(new Vector2(
                     startX + col * cellSize + jx,
-                    startY + row * cellSize + jy));
+                    startY + row * cellSize + jy
+                ));
             }
         }
 

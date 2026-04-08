@@ -15,24 +15,24 @@ public class Main : MonoBehaviour
     {
         cameraController = GetComponent<CameraController>();
 
-        // 1. Generate the map first — everything else depends on it.
+        // Generate the map first (everything else depends on it)
         map.Generate();
 
-        // 2. Camera bounds.
+        // Camera bounds
         cameraController.SetMapBounds(map.size);
 
-        // 3. Day/Night overlay bounds.
+        // Day/Night overlay bounds
         if (dayNightCycle != null)
             dayNightCycle.SetMapBounds(map.size);
 
-        // 4. Temperature map.
+        // Temperature map
         if (temperatureMap != null)
             temperatureMap.Initialise(map.size);
 
-        // 5. Food (reads BiomeMap for Bloom tiles).
+        // Food
         foodSpawner.Initialise(map.GetComponent<MapGenerator>(), map.size);
 
-        // 6. Creature population.
+        // Creature population
         creatureManager.Initialise(map.size);
     }
 }

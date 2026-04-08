@@ -2,14 +2,14 @@ using UnityEngine;
 
 public class MapView : MonoBehaviour
 {
-    [Header("Biome Colours")]
-    public Color sedimentColor = new(0.59f, 0.44f, 0.27f, 1f); // muddy brown
-    public Color brineColor    = new(0.18f, 0.42f, 0.65f, 1f); // deep teal-blue
-    public Color bloomColor    = new(0.27f, 0.55f, 0.25f, 1f); // earthy green
+    [Header("Biome Colors")]
+    public Color sedimentColor = new (0.59f, 0.44f, 0.27f, 1f); // muddy brown
+    public Color brineColor    = new (0.18f, 0.42f, 0.65f, 1f); // deep teal-blue
+    public Color bloomColor    = new (0.27f, 0.55f, 0.25f, 1f); // earthy green
 
     [Header("Border Smoothing")]
     [Tooltip("Radius in pixels of the box-blur applied to biome borders. " +
-             "0 = no blur, 3–6 gives soft transitions, 10+ is very painterly.")]
+             "0 = no blur, 3-6 gives soft transitions, 10+ is very painterly.")]
     [Range(0, 16)]
     public int blurRadius = 5;
 
@@ -21,21 +21,21 @@ public class MapView : MonoBehaviour
     {
         mapGenerator = GetComponent<MapGenerator>();
 
-        backgroundQuad = new("MapBackground");
+        backgroundQuad = new ("Background");
         backgroundQuad.transform.SetParent(transform);
 
         MeshFilter   meshFilter   = backgroundQuad.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = backgroundQuad.AddComponent<MeshRenderer>();
 
         meshFilter.mesh           = CreateQuadMesh();
-        meshRenderer.material     = new(Shader.Find("Sprites/Default"));
+        meshRenderer.material     = new (Shader.Find("Sprites/Default"));
         meshRenderer.sortingOrder = -1;
     }
 
     public void DrawMap(Vector2 mapSize)
     {
         backgroundQuad.transform.localPosition = Vector3.zero;
-        backgroundQuad.transform.localScale    = new(mapSize.x, mapSize.y, 1f);
+        backgroundQuad.transform.localScale    = new (mapSize.x, mapSize.y, 1f);
 
         BuildAndApplyTexture(mapGenerator.BiomeMap, mapGenerator.Resolution);
     }
@@ -45,7 +45,7 @@ public class MapView : MonoBehaviour
         if (biomeTexture != null)
             Destroy(biomeTexture);
 
-        biomeTexture = new Texture2D(resolution.x, resolution.y, TextureFormat.RGB24, mipChain: false)
+        biomeTexture = new (resolution.x, resolution.y, TextureFormat.RGB24, mipChain: false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,
@@ -54,14 +54,14 @@ public class MapView : MonoBehaviour
         int w = resolution.x;
         int h = resolution.y;
 
-        // ── Step 1: Convert biome map to a linear colour array ───────────────
-        Color[] pixels = new Color[w * h];
+        // Convert biome map to a linear color array
+        var pixels = new Color[w * h];
 
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
                 pixels[y * w + x] = BiomeToColor(biomeMap[x, y]);
 
-        // ── Step 2: Box blur (separable — horizontal then vertical) ──────────
+        // Box blur (separable, aka horizontal then vertical)
         if (blurRadius > 0)
             pixels = BoxBlurSeparable(pixels, w, h, blurRadius);
 
@@ -80,10 +80,10 @@ public class MapView : MonoBehaviour
     /// </summary>
     static Color[] BoxBlurSeparable(Color[] src, int w, int h, int r)
     {
-        Color[] tmp = new Color[src.Length];
-        Color[] dst = new Color[src.Length];
+        var tmp = new Color[src.Length];
+        var dst = new Color[src.Length];
 
-        // ── Horizontal pass: src → tmp ────────────────────────────────────────
+        // Horizontal pass: src => tmp
         for (int y = 0; y < h; y++)
         {
             int rowBase = y * w;
@@ -112,7 +112,7 @@ public class MapView : MonoBehaviour
             }
         }
 
-        // ── Vertical pass: tmp → dst ─────────────────────────────────────────
+        // Vertical pass: tmp => dst
         for (int x = 0; x < w; x++)
         {
             Color acc = Color.black;
@@ -149,17 +149,19 @@ public class MapView : MonoBehaviour
 
     static Mesh CreateQuadMesh()
     {
-        Mesh mesh = new() { name = "BackgroundQuad" };
-
-        mesh.vertices = new Vector3[]
+        Mesh mesh = new()
         {
-            new(-0.5f, -0.5f, 0f),
-            new( 0.5f, -0.5f, 0f),
-            new( 0.5f,  0.5f, 0f),
-            new(-0.5f,  0.5f, 0f),
+            name = "BackgroundQuad",
+            vertices = new Vector3[]
+            {
+                new (-0.5f, -0.5f, 0f),
+                new ( 0.5f, -0.5f, 0f),
+                new ( 0.5f,  0.5f, 0f),
+                new (-0.5f,  0.5f, 0f),
+            },
+            triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up }
         };
-        mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
-        mesh.uv        = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
 
         mesh.RecalculateNormals();
         return mesh;

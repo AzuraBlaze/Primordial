@@ -14,9 +14,9 @@ public class Food : MonoBehaviour
 
     private SpriteRenderer sr;
 
-    // Colours
-    static readonly Color PlantColor = new(0.35f, 0.78f, 0.25f, 1f);
-    static readonly Color MeatColor  = new(0.85f, 0.28f, 0.28f, 1f);
+    // Colors
+    static readonly Color PlantColor = new (0.35f, 0.78f, 0.25f, 1f);
+    static readonly Color MeatColor  = new (0.85f, 0.28f, 0.28f, 1f);
 
     void Awake()
     {
@@ -27,7 +27,7 @@ public class Food : MonoBehaviour
     /// <summary>Initialise or re-initialise after pool retrieval.</summary>
     public void Initialise(Vector2 position, FoodType type, float nutrition)
     {
-        transform.position = new Vector3(position.x, position.y, 0f);
+        transform.position = new (position.x, position.y, 0f);
         foodType       = type;
         nutritionValue = nutrition;
 

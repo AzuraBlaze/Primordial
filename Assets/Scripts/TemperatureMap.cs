@@ -22,14 +22,14 @@ public class TemperatureMap : MonoBehaviour
     [Tooltip("Show the temperature overlay.")]
     public bool showOverlay = false;
 
-    [Tooltip("Maximum alpha of the colour overlay (0 = invisible).")]
+    [Tooltip("Maximum alpha of the color overlay (0 = invisible).")]
     [Range(0f, 0.5f)]
     public float overlayAlpha = 0.25f;
 
-    public Color coldColor = new(0.2f, 0.5f, 1.0f, 1f);
-    public Color hotColor  = new(1.0f, 0.2f, 0.1f, 1f);
+    public Color coldColor = new (0.2f, 0.5f, 1.0f, 1f);
+    public Color hotColor  = new (1.0f, 0.2f, 0.1f, 1f);
 
-    // ── Private ───────────────────────────────────────────────────────────────
+    /* ======================================== Private ======================================== */
     private Vector2    mapSize;
     private Vector2    mapOffset;   // world-space bottom-left corner
     private GameObject overlayQuad;
@@ -53,7 +53,7 @@ public class TemperatureMap : MonoBehaviour
         SetOverlayVisible(showOverlay);
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    /* ======================================== Public Methods ======================================== */
 
     /// <summary>
     /// Sample temperature [0,1] at a world position.
@@ -76,7 +76,7 @@ public class TemperatureMap : MonoBehaviour
 
     public void ToggleOverlay() => SetOverlayVisible(!overlayVisible);
 
-    // ── Generation ────────────────────────────────────────────────────────────
+    /* ======================================== Generation ======================================== */
 
     float RawNoise(float nx, float ny)
     {
@@ -95,13 +95,13 @@ public class TemperatureMap : MonoBehaviour
 
         if (heatTexture != null) Destroy(heatTexture);
 
-        heatTexture = new Texture2D(w, h, TextureFormat.RGBA32, false)
+        heatTexture = new (w, h, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,
         };
 
-        Color[] pixels = new Color[w * h];
+        var pixels = new Color[w * h];
         for (int py = 0; py < h; py++)
         {
             for (int px = 0; px < w; px++)
@@ -119,17 +119,17 @@ public class TemperatureMap : MonoBehaviour
 
     void BuildOverlayQuad()
     {
-        overlayQuad = new GameObject("TemperatureOverlay");
+        overlayQuad = new ("Overlay");
         overlayQuad.transform.SetParent(transform);
-        overlayQuad.transform.localPosition = new Vector3(0f, 0f, -0.4f);
-        overlayQuad.transform.localScale    = new Vector3(mapSize.x, mapSize.y, 1f);
+        overlayQuad.transform.localPosition = new (0f, 0f, -0.4f);
+        overlayQuad.transform.localScale    = new (mapSize.x, mapSize.y, 1f);
 
         MeshFilter mf     = overlayQuad.AddComponent<MeshFilter>();
         MeshRenderer mr   = overlayQuad.AddComponent<MeshRenderer>();
 
         mf.mesh = CreateQuad();
 
-        Material mat = new Material(Shader.Find("Sprites/Default"));
+        Material mat = new (Shader.Find("Sprites/Default"));
         mat.mainTexture = heatTexture;
         mat.color       = Color.white;
         mr.material     = mat;
@@ -138,12 +138,16 @@ public class TemperatureMap : MonoBehaviour
 
     static Mesh CreateQuad()
     {
-        Mesh mesh = new() { name = "TempOverlayQuad" };
-        mesh.vertices  = new Vector3[] {
-            new(-0.5f, -0.5f, 0f), new(0.5f, -0.5f, 0f),
-            new( 0.5f,  0.5f, 0f), new(-0.5f, 0.5f, 0f) };
-        mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
-        mesh.uv        = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
+        Mesh mesh = new()
+        {
+            name = "TempOverlayQuad",
+            vertices = new Vector3[] {
+                new (-0.5f, -0.5f, 0f), new (0.5f, -0.5f, 0f),
+                new ( 0.5f,  0.5f, 0f), new (-0.5f, 0.5f, 0f)
+            },
+            triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            uv        = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up }
+        };
         mesh.RecalculateNormals();
         return mesh;
     }

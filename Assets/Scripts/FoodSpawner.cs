@@ -18,16 +18,13 @@ public class FoodSpawner : MonoBehaviour
     [Tooltip("How many pellets to try to add each respawn tick.")]
     public int   respawnBatchSize  = 8;
 
-    [Header("References – leave blank to use procedural sprites")]
+    [Header("References")]
+    [Tooltip("Leave blank to use procedural sprite.")]
     public Sprite plantSprite; // Optional override
+    [Tooltip("Leave blank to use procedural sprite.")]
     public Sprite meatSprite;  // Optional override
 
-    // ── Legacy field kept for backward compatibility ──────────────────────────
-    // If you had a 'foodSprite' assigned in the Inspector it will still
-    // serialize; we no longer use it for new food but it won't cause errors.
-    public Sprite foodSprite;
-
-    // Runtime
+    /* ======================================== Runtime ======================================== */
     private MapGenerator         mapGenerator;
     private Vector2              mapSize;
     private List<Food>           activePlantFood = new();
@@ -36,7 +33,7 @@ public class FoodSpawner : MonoBehaviour
     private List<Vector2>        bloomTiles      = new();
     private float                respawnTimer;
 
-    // Cached procedural sprites (created once)
+    /* ======================================== Cached Procedural Sprites (created once) ======================================== */
     private static Sprite s_PlantSprite;
     private static Sprite s_MeatSprite;
 
@@ -66,8 +63,7 @@ public class FoodSpawner : MonoBehaviour
         }
     }
 
-    // ── Plant food ────────────────────────────────────────────────────────────
-
+    /* ======================================== Plant Food ======================================== */
     void CacheBloomTiles()
     {
         bloomTiles.Clear();
@@ -82,7 +78,7 @@ public class FoodSpawner : MonoBehaviour
                 {
                     float wx = ((px + 0.5f) / res.x) * mapSize.x - mapSize.x * 0.5f;
                     float wy = ((py + 0.5f) / res.y) * mapSize.y - mapSize.y * 0.5f;
-                    bloomTiles.Add(new Vector2(wx, wy));
+                    bloomTiles.Add(new (wx, wy));
                 }
             }
         }
@@ -119,7 +115,7 @@ public class FoodSpawner : MonoBehaviour
         activePlantFood.Add(f);
     }
 
-    // ── Meat food ─────────────────────────────────────────────────────────────
+    /* ======================================== Meat Food ======================================== */
 
     /// <summary>Drop meat at a position when a creature dies (called by Creature).</summary>
     public void SpawnMeatPellet(Vector2 position, float nutrition)
@@ -128,7 +124,7 @@ public class FoodSpawner : MonoBehaviour
         f.Initialise(position, Food.FoodType.Meat, Mathf.Clamp01(nutrition));
     }
 
-    // ── Pool ──────────────────────────────────────────────────────────────────
+    /* ======================================== Object Pool ======================================== */
 
     public void ReturnToPool(Food food)
     {
@@ -149,7 +145,7 @@ public class FoodSpawner : MonoBehaviour
             return pool.Dequeue();
 
         // Create a new food object with the appropriate sprite
-        GameObject go = new("Food");
+        GameObject go = new ("Food");
         go.transform.SetParent(transform);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
@@ -162,7 +158,7 @@ public class FoodSpawner : MonoBehaviour
         return go.GetComponent<Food>();
     }
 
-    // ── Sprite accessors ──────────────────────────────────────────────────────
+    /* ======================================== Sprite Access ======================================== */
 
     Sprite GetPlantSprite()
     {
@@ -178,15 +174,7 @@ public class FoodSpawner : MonoBehaviour
         return s_MeatSprite;
     }
 
-    // ── Backward-compat public accessor used by CreatureManager ──────────────
-
-    /// <summary>
-    /// Returns a plain circle sprite — kept so CreatureManager can still call
-    /// FoodSpawner.CreateCircleSprite_Public() for creature bodies.
-    /// </summary>
-    public static Sprite CreateCircleSprite_Public() => CreateCircleSprite();
-
-    // ── Procedural sprite generators ──────────────────────────────────────────
+    /* ======================================== Sprite Generators ======================================== */
 
     /// <summary>
     /// Plant sprite: a four-pointed leaf/diamond shape with a small stem.
@@ -195,17 +183,17 @@ public class FoodSpawner : MonoBehaviour
     static Sprite CreatePlantSprite()
     {
         const int size = 32;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        var tex = new (size, size, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,
         };
 
-        Color clear = new(0, 0, 0, 0);
+        Color clear = new (0, 0, 0, 0);
         Color white = Color.white;
 
         float cx = size / 2f - 0.5f;
-        float cy = size / 2f;      // Centre, slightly raised to leave room for stem
+        float cy = size / 2f;      // Center, slightly raised to leave room for stem
 
         for (int y = 0; y < size; y++)
         for (int x = 0; x < size; x++)
@@ -213,12 +201,12 @@ public class FoodSpawner : MonoBehaviour
             float dx = x - cx;
             float dy = y - cy;
 
-            // Four-petal diamond: |dx|/a + |dy|/b <= 1  (a squashed rhombus)
+            // Four-petal diamond: |dx|/a + |dy|/b <= 1
             float a = size * 0.38f;   // horizontal half-extent
             float b = size * 0.46f;   // vertical   half-extent
             bool inLeaf = (Mathf.Abs(dx) / a + Mathf.Abs(dy) / b) <= 1f;
 
-            // Thin vertical stem below the centre
+            // Thin vertical stem below the center
             bool inStem = Mathf.Abs(dx) <= 1.2f && dy < 0f && dy > -(size * 0.38f);
 
             tex.SetPixel(x, y, (inLeaf || inStem) ? white : clear);
@@ -235,13 +223,13 @@ public class FoodSpawner : MonoBehaviour
     static Sprite CreateMeatSprite()
     {
         const int size = 32;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        Texture2D tex = new (size, size, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,
         };
 
-        Color clear = new(0, 0, 0, 0);
+        Color clear = new (0, 0, 0, 0);
         Color white = Color.white;
 
         float cx = size / 2f - 0.5f;
@@ -276,13 +264,13 @@ public class FoodSpawner : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 
-    static Sprite CreateCircleSprite()
+    static public Sprite CreateCircleSprite()
     {
-        int   size   = 32;
-        float radius = size / 2f;
-        var   tex    = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        Color clear  = new(0, 0, 0, 0);
-        Color white  = Color.white;
+        int         size   = 32;
+        float       radius = size / 2f;
+        Texture2D   tex    = new (size, size, TextureFormat.RGBA32, false);
+        Color       clear  = new (0, 0, 0, 0);
+        Color       white  = Color.white;
 
         for (int y = 0; y < size; y++)
         for (int x = 0; x < size; x++)
