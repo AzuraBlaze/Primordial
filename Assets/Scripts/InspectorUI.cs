@@ -202,7 +202,7 @@ public class InspectorUI : MonoBehaviour
         DrawDivider(lx, y, lw); y += 6;
 
         /* ======================================== Editable Traits ======================================== */
-        GUI.Label(new Rect(lx, y, lw, 18), "GENOME  (drag to edit)", headerStyle);
+        GUI.Label(new Rect(lx, y, lw, 18), "GENOME", headerStyle);
         y += 22;
 
         editGenome.speed         = DrawTraitSlider(ref y, lx, lw, "Speed",      editGenome.speed);
