@@ -294,7 +294,6 @@ MonoBehaviour:
   respawnBatchSize: 8
   plantSprite: {fileID: 0}
   meatSprite: {fileID: 0}
-  foodSprite: {fileID: 0}
 --- !u!4 &560741723
 Transform:
   m_ObjectHideFlags: 0

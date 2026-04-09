@@ -404,7 +404,7 @@ public class Creature : MonoBehaviour
             $"Size:      {genome.size:P0}   Fertility: {genome.fertility:P0}\n" +
             $"Aggr:      {genome.aggression:P0}   Fear: {genome.fear:P0}\n" +
             $"Flocking:  {genome.flocking:P0}   {timeLabel}\n" +
-            $"Hunger:    {hunger:P0}   {(sleeping ? "💤 Sleeping" : "Awake")}\n" +
+            $"Hunger:    {hunger:P0}   {(sleeping ? "Sleeping" : "Awake")}\n" +
             $"Temp Tol:  {genome.tempTolerance:P0}";
     }
 }
