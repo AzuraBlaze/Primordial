@@ -3,18 +3,16 @@ using UnityEngine;
 public class Main : MonoBehaviour
 {
     [Header("References")]
-    public Map             map;
-    public FoodSpawner     foodSpawner;
-    public CreatureManager creatureManager;
-    public DayNightCycle   dayNightCycle;
-    public TemperatureMap  temperatureMap;
+    public CameraController cameraController;
+    public Map              map;
+    public FoodSpawner      foodSpawner;
+    public CreatureManager  creatureManager;
+    public DayNightCycle    dayNightCycle;
+    public TemperatureMap   temperatureMap;
 
-    private CameraController cameraController;
 
     void Start()
     {
-        cameraController = GetComponent<CameraController>();
-
         // Generate the map first (everything else depends on it)
         map.Generate();
 

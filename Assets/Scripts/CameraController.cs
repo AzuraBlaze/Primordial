@@ -17,7 +17,7 @@ public class CameraController : MonoBehaviour
     private float maxZoom;
     private Vector2 paddedHalfSize;
 
-    void Start()
+    void Awake()
     {
         cam = GetComponent<Camera>();
         targetZoom = cam.orthographicSize;
@@ -73,7 +73,7 @@ public class CameraController : MonoBehaviour
                 transform.position.x,
                 -paddedHalfSize.x + horizontalExtent,
                 paddedHalfSize.x - horizontalExtent);
-        
+
         float clampedY = (verticalExtent > paddedHalfSize.y)
             ? 0f
             : Mathf.Clamp(
