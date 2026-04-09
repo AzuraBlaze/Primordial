@@ -6,7 +6,7 @@ using UnityEngine;
 /// Features:
 ///   - Population counter (top-left)
 ///   - Temperature overlay toggle button (top-left)
-///   - Day/Night arc clock HUD (top-right)
+///   - Day/Night arc clock HUD (top-right) with baked sun and moon textures
 ///   - Click a creature to open its genome panel
 ///   - All genome traits are editable via sliders
 ///   - Stats (hunger, age) shown read-only
@@ -43,8 +43,10 @@ public class InspectorUI : MonoBehaviour
     private Texture2D trackTex;
     private Texture2D thumbTex;
 
-    // Clock arc texture cache -- rebuilt whenever screen or clockSize changes
+    // Clock textures -- rebuilt whenever clockSize changes
     private Texture2D clockArcTex;
+    private Texture2D sunTex;
+    private Texture2D moonTex;
     private int       clockTexSize;
 
     private bool stylesBuilt;
@@ -171,57 +173,116 @@ public class InspectorUI : MonoBehaviour
     {
         if (DayNightCycle.Instance == null) return;
 
-        float phase     = DayNightCycle.Instance.Phase;
-        int   cx        = Screen.width  - clockSize - ClockMargin;
-        int   cy        = ClockMargin;
-        int   totalH    = clockSize + 28; // arc + two text rows
+        float phase  = DayNightCycle.Instance.Phase;
+        int   cx     = Screen.width - clockSize - ClockMargin;
+        int   cy     = ClockMargin;
+        int   totalH = clockSize + 28; // arc + two text rows
 
         // Background pill
         GUI.Box(new Rect(cx - 6, cy - 4, clockSize + 12, totalH + 8), GUIContent.none, boxStyle);
 
-        // Rebuild the arc texture when needed
+        // Rebuild baked textures when clockSize changes
         if (clockArcTex == null || clockTexSize != clockSize)
-            RebuildClockTexture();
+            RebuildClockTextures();
 
-        // Draw the base arc texture (baked track)
+        // Draw the baked arc track
         GUI.DrawTexture(new Rect(cx, cy, clockSize, clockSize), clockArcTex);
 
-        // Draw the sun/moon dot on top via a tiny colored box
+        // Draw the sun or moon icon on the ring
         DrawCelestialBody(phase, cx, cy);
 
-        // Time label centered below the arc
-        string timeStr = DayNightCycle.Instance.ClockString();
-        string labelStr = DayNightCycle.Instance.TimeLabel();
+        // Time and label below the arc
+        GUI.Label(new Rect(cx, cy + clockSize + 2,  clockSize, 18),
+            DayNightCycle.Instance.ClockString(), clockTimeStyle);
+        GUI.Label(new Rect(cx, cy + clockSize + 18, clockSize, 14),
+            DayNightCycle.Instance.TimeLabel(), clockLabelStyle);
+    }
 
-        GUI.Label(new Rect(cx, cy + clockSize + 2,  clockSize, 18), timeStr,  clockTimeStyle);
-        GUI.Label(new Rect(cx, cy + clockSize + 18, clockSize, 14), labelStr, clockLabelStyle);
+    /* ======================================== Clock Texture Baking ======================================== */
+
+    void RebuildClockTextures()
+    {
+        clockTexSize = clockSize;
+
+        if (clockArcTex != null) Object.Destroy(clockArcTex);
+        if (sunTex      != null) Object.Destroy(sunTex);
+        if (moonTex     != null) Object.Destroy(moonTex);
+
+        clockArcTex = BakeArcTexture(clockSize);
+        sunTex      = BakeSunTexture(Mathf.RoundToInt(clockSize * 0.22f));
+        moonTex     = BakeMoonTexture(Mathf.RoundToInt(clockSize * 0.22f));
     }
 
     /// <summary>
-    /// Bakes the static arc track (the ring, horizon line, and tick marks) into a
-    /// reusable Texture2D so we are not redrawing it from scratch each frame.
+    /// Bakes the donut ring with four tick marks at the cardinal phase positions
+    /// (midnight, dawn, noon, dusk).
     /// </summary>
-    void RebuildClockTexture()
+    static Texture2D BakeArcTexture(int s)
     {
-        clockTexSize = clockSize;
-        int s = clockSize;
-
-        if (clockArcTex != null) Object.Destroy(clockArcTex);
-        clockArcTex = new Texture2D(s, s, TextureFormat.RGBA32, false)
+        Texture2D tex = new (s, s, TextureFormat.RGBA32, false)
         {
             filterMode = FilterMode.Bilinear,
             wrapMode   = TextureWrapMode.Clamp,
         };
 
         Color clear      = new (0f, 0f, 0f, 0f);
-        Color trackColor = new (0.30f, 0.30f, 0.40f, 0.70f);   // dim ring
-        Color tickColor  = new (0.55f, 0.55f, 0.65f, 0.80f);   // tick marks
+        Color trackColor = new (0.30f, 0.30f, 0.40f, 0.70f);
+        Color tickColor  = new (0.60f, 0.60f, 0.70f, 0.90f);
 
         float cx     = (s - 1) * 0.5f;
         float cy     = (s - 1) * 0.5f;
         float outerR = s * 0.46f;
         float innerR = s * 0.38f;
-        float tickR  = s * 0.50f * 0.88f; // tick outer edge
+
+        for (int y = 0; y < s; y++)
+        for (int x = 0; x < s; x++)
+        {
+            float dx   = x - cx;
+            float dy   = y - cy;
+            float dist = Mathf.Sqrt(dx * dx + dy * dy);
+            tex.SetPixel(x, y, (dist >= innerR && dist <= outerR) ? trackColor : clear);
+        }
+
+        // Tick marks at midnight (0), dawn (0.25), noon (0.5), dusk (0.75)
+        float[] tickPhases = { 0f, 0.25f, 0.5f, 0.75f };
+        foreach (float tp in tickPhases)
+        {
+            float angle = PhaseToAngleRad(tp);
+            for (float r = innerR - 2f; r <= outerR + 2f; r += 0.5f)
+            {
+                int tx = Mathf.RoundToInt(cx + Mathf.Cos(angle) * r);
+                int ty = Mathf.RoundToInt(cy + Mathf.Sin(angle) * r);
+                if (tx >= 0 && tx < s && ty >= 0 && ty < s)
+                    tex.SetPixel(tx, ty, tickColor);
+            }
+        }
+
+        tex.Apply();
+        return tex;
+    }
+
+    /// <summary>
+    /// Bakes a sun icon: a filled circle core surrounded by eight short ray dashes,
+    /// all in warm yellow-white.
+    /// </summary>
+    static Texture2D BakeSunTexture(int s)
+    {
+        Texture2D tex = new (s, s, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+        };
+
+        Color clear  = new (0f, 0f, 0f, 0f);
+        Color center = new (1.00f, 0.95f, 0.55f, 1f);   // warm yellow core
+        Color ray    = new (1.00f, 0.88f, 0.40f, 0.85f); // slightly dimmer rays
+
+        float cx    = (s - 1) * 0.5f;
+        float cy    = (s - 1) * 0.5f;
+        float coreR = s * 0.30f;
+        float rayIn = s * 0.40f;  // ray inner radius
+        float rayOut= s * 0.50f;  // ray outer radius
+        float rayW  = s * 0.10f;  // ray half-width in world-space units
 
         for (int y = 0; y < s; y++)
         for (int x = 0; x < s; x++)
@@ -230,64 +291,80 @@ public class InspectorUI : MonoBehaviour
             float dy   = y - cy;
             float dist = Mathf.Sqrt(dx * dx + dy * dy);
 
-            // Donut ring
-            if (dist >= innerR && dist <= outerR)
+            if (dist <= coreR)
             {
-                // Only the upper semicircle (day arc) + a thin full ring
-                // Upper half = dy >= 0 in texture space (y >= cy), but we want the
-                // top of screen to be the top of the arc.  In Unity GUI Y increases
-                // downward, so "top" in GUI = small Y values = large dy values here
-                // (texture origin is bottom-left).  We draw the full ring as the track.
-                clockArcTex.SetPixel(x, y, trackColor);
+                tex.SetPixel(x, y, center);
+                continue;
             }
-            else
+
+            // Eight rays at 45-degree increments
+            bool inRay = false;
+            if (dist >= rayIn && dist <= rayOut)
             {
-                clockArcTex.SetPixel(x, y, clear);
+                float angle = Mathf.Atan2(dy, dx);
+                float snap  = Mathf.Round(angle / (Mathf.PI * 0.25f)) * (Mathf.PI * 0.25f);
+                float delta = Mathf.Abs(Mathf.DeltaAngle(
+                    angle * Mathf.Rad2Deg, snap * Mathf.Rad2Deg));
+                inRay = delta * Mathf.Deg2Rad * dist < rayW;
             }
+
+            tex.SetPixel(x, y, inRay ? ray : clear);
         }
 
-        // Draw four small tick marks at N/E/S/W positions (representing 6am, noon, 6pm, midnight)
-        // Angles in standard math convention: 0 = right, 90 = up (we'll convert below).
-        // Day phases: midnight=0, dawn=0.25, noon=0.5, dusk=0.75
-        // We map phase -> angle where noon is at the top (90 deg), midnight at the bottom.
-        float[] tickPhases = { 0f, 0.25f, 0.5f, 0.75f };
-        foreach (float tp in tickPhases)
-        {
-            float angle = PhaseToAngleRad(tp);
-            // Tick goes from innerR-2 to outerR+2
-            for (float r = innerR - 2f; r <= outerR + 2f; r += 0.5f)
-            {
-                int tx = Mathf.RoundToInt(cx + Mathf.Cos(angle) * r);
-                int ty = Mathf.RoundToInt(cy + Mathf.Sin(angle) * r);
-                if (tx >= 0 && tx < s && ty >= 0 && ty < s)
-                    clockArcTex.SetPixel(tx, ty, tickColor);
-            }
-        }
-
-        clockArcTex.Apply();
+        tex.Apply();
+        return tex;
     }
 
     /// <summary>
-    /// Convert a day phase [0,1] to a radian angle for placing items on the arc.
-    /// Noon (0.5) maps to the top of the circle (PI/2 in standard math).
-    /// Midnight (0/1) maps to the bottom (-PI/2).
+    /// Bakes a crescent moon icon: a filled circle with a smaller offset circle
+    /// subtracted to create the crescent shape, in cool blue-white.
     /// </summary>
-    static float PhaseToAngleRad(float phase)
+    static Texture2D BakeMoonTexture(int s)
     {
-        // phase 0.5 = top = 90 deg = PI/2
-        // phase 0.0 = bottom = -90 deg = -PI/2
-        // linear: angle = (phase - 0.5) * 2 * PI  shifted by PI/2
-        // Clockwise from top: angle = PI/2 - phase * 2 * PI
-        return Mathf.PI * 0.5f - phase * Mathf.PI * 2f;
+        Texture2D tex = new (s, s, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+        };
+
+        Color clear = new (0f, 0f, 0f, 0f);
+        Color fill  = new (0.80f, 0.90f, 1.00f, 1f);   // pale cool blue-white
+
+        float cx      = (s - 1) * 0.5f;
+        float cy      = (s - 1) * 0.5f;
+        float moonR   = s * 0.40f;
+        // The bite circle is offset upper-right, creating a crescent facing lower-left
+        float biteR   = s * 0.34f;
+        float biteOff = s * 0.22f;
+
+        for (int y = 0; y < s; y++)
+        for (int x = 0; x < s; x++)
+        {
+            float dx   = x - cx;
+            float dy   = y - cy;
+            float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+            if (dist > moonR) { tex.SetPixel(x, y, clear); continue; }
+
+            float bdx   = x - (cx + biteOff);
+            float bdy   = y - (cy + biteOff);
+            bool inBite = (bdx * bdx + bdy * bdy) <= biteR * biteR;
+
+            tex.SetPixel(x, y, inBite ? clear : fill);
+        }
+
+        tex.Apply();
+        return tex;
     }
+
+    /* ======================================== Celestial Body Drawing ======================================== */
 
     void DrawCelestialBody(float phase, int clockX, int clockY)
     {
-        int   s      = clockSize;
-        float cx     = s * 0.5f;
-        float cy     = s * 0.5f;
-        float bodyR  = s * 0.42f; // orbit radius (midpoint of the ring)
-        float dotR   = s * 0.07f; // visual radius of the dot
+        int   s     = clockSize;
+        float cx    = s * 0.5f;
+        float cy    = s * 0.5f;
+        float bodyR = s * 0.42f; // orbit radius -- midpoint of the ring
 
         float angle = PhaseToAngleRad(phase);
 
@@ -295,37 +372,38 @@ public class InspectorUI : MonoBehaviour
         float texX = cx + Mathf.Cos(angle) * bodyR;
         float texY = cy + Mathf.Sin(angle) * bodyR;
 
-        // Convert texture coords to GUI coords.
-        // Texture Y=0 is bottom; GUI Y=0 is top.  clockY is the GUI top of the widget.
-        float guiX = clockX + texX - dotR;
-        float guiY = clockY + (s - texY) - dotR; // flip Y
+        bool      isDay = phase > 0.2f && phase < 0.8f;
+        Texture2D icon  = isDay ? sunTex : moonTex;
+        float     iconW = icon.width;
+        float     iconH = icon.height;
 
-        float dotDiam = dotR * 2f;
+        // Convert from texture space (Y=0 bottom) to GUI space (Y=0 top)
+        float guiX = clockX + texX - iconW * 0.5f;
+        float guiY = clockY + (s - texY) - iconH * 0.5f;
 
-        bool isDay = phase > 0.2f && phase < 0.8f;
+        GUI.DrawTexture(new Rect(guiX, guiY, iconW, iconH), icon);
+    }
 
-        // Sun: bright warm yellow; Moon: cool pale blue-white
-        Color dotColor = isDay
-            ? new Color(1.00f, 0.92f, 0.35f, 1f)   // sun
-            : new Color(0.78f, 0.88f, 1.00f, 1f);   // moon
+    /* ======================================== Phase -> Angle ======================================== */
 
-        // Draw the dot as a small colored box (IMGUI doesn't have circle primitives)
-        Color prev = GUI.color;
-        GUI.color  = dotColor;
-        GUI.Box(new Rect(guiX, guiY, dotDiam, dotDiam), GUIContent.none, boxStyle);
-        GUI.color  = prev;
+    /// <summary>
+    /// Converts a day phase [0,1] to a radian angle for placement on the clock ring.
+    /// Noon (0.5) sits at the top (PI/2). Midnight (0/1) sits at the bottom (-PI/2).
+    /// </summary>
+    static float PhaseToAngleRad(float phase)
+    {
+        return Mathf.PI * 0.5f - phase * Mathf.PI * 2f;
     }
 
     /* ======================================== Inspector Panel ======================================== */
     void DrawInspectorPanel()
     {
-        // Estimate content height: header + 13 trait rows + stat rows + buttons
-        int traitCount = 11; // all non-visual traits
+        int traitCount = 11;
         int contentH   = PanelPadY * 2
-                       + RowH * 3          // header block
+                       + RowH * 3
                        + traitCount * RowH
-                       + RowH * 3          // stats
-                       + RowH * 2          // buttons
+                       + RowH * 3
+                       + RowH * 2
                        + 10;
 
         int panelH = Mathf.Min(contentH, Screen.height - 20);
@@ -340,16 +418,14 @@ public class InspectorUI : MonoBehaviour
         GUI.Box(new Rect(panelX - 14, panelY + 4, 10, 10), GUIContent.none, boxStyle);
         GUI.color  = prev;
 
-        // Scrollable inner area
         Rect outerRect = new (panelX + 2, panelY + 2, PanelW - 4, panelH - 4);
         Rect innerRect = new (0, 0, PanelW - 20, contentH);
         scrollPos = GUI.BeginScrollView(outerRect, scrollPos, innerRect, false, false);
 
         float y  = PanelPadY;
         float lx = PanelPadX;
-        float lw = PanelW - PanelPadX * 2 - 16; // subtract scrollbar width
+        float lw = PanelW - PanelPadX * 2 - 16;
 
-        /* ======================================== Header ======================================== */
         GUI.Label(new Rect(lx, y, lw, 22), $"CREATURE  Gen {selected.generation}", headerStyle);
         y += 22;
 
@@ -362,14 +438,12 @@ public class InspectorUI : MonoBehaviour
 
         DrawDivider(lx, y, lw); y += 6;
 
-        /* ======================================== Stats (read-only) ======================================== */
         DrawStatRow(ref y, lx, lw, "Hunger",   $"{selected.hunger:P0}");
         DrawStatRow(ref y, lx, lw, "Age",      $"{selected.age:F0} / {editGenome.MaxAge:F0} s");
         DrawStatRow(ref y, lx, lw, "Activity", GetActivityStr());
 
         DrawDivider(lx, y, lw); y += 6;
 
-        /* ======================================== Editable Traits ======================================== */
         GUI.Label(new Rect(lx, y, lw, 18), "GENOME", headerStyle);
         y += 22;
 
@@ -387,14 +461,12 @@ public class InspectorUI : MonoBehaviour
 
         DrawDivider(lx, y, lw); y += 6;
 
-        // Hue/saturation (visual)
         editGenome.hue        = DrawTraitSlider(ref y, lx, lw, "Hue",        editGenome.hue);
         editGenome.saturation = DrawTraitSlider(ref y, lx, lw, "Saturation", editGenome.saturation);
 
         y += 4;
         DrawDivider(lx, y, lw); y += 8;
 
-        /* ======================================== Buttons ======================================== */
         float bw = (lw - 4) / 2f;
 
         if (GUI.Button(new Rect(lx, y, bw, 24), "Apply", buttonStyle))
@@ -506,7 +578,6 @@ public class InspectorUI : MonoBehaviour
         thumbStyle.fixedWidth        = 10f;
         thumbStyle.fixedHeight       = 14f;
 
-        // Clock-specific styles
         clockTimeStyle = new (GUI.skin.label)
         {
             fontSize  = 13,
