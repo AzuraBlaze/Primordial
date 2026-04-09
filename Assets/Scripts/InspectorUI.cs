@@ -4,8 +4,9 @@ using UnityEngine;
 /// Handles the HUD and the creature inspection/editing panel.
 ///
 /// Features:
-///   - Population counter + day/night clock (top-left)
+///   - Population counter (top-left)
 ///   - Temperature overlay toggle button (top-left)
+///   - Day/Night arc clock HUD (top-right)
 ///   - Click a creature to open its genome panel
 ///   - All genome traits are editable via sliders
 ///   - Stats (hunger, age) shown read-only
@@ -21,6 +22,10 @@ public class InspectorUI : MonoBehaviour
     public Color headerColor     = new (0.75f, 0.90f, 1.00f, 1f);
     public Color sliderTrack     = new (0.25f, 0.25f, 0.30f, 1f);
 
+    [Header("Clock HUD")]
+    [Tooltip("Diameter of the arc clock widget in pixels.")]
+    public int clockSize = 80;
+
     /* ======================================== Runtime ======================================== */
     private Camera cam;
     private CameraController cameraController;
@@ -31,10 +36,17 @@ public class InspectorUI : MonoBehaviour
     private GUIStyle buttonStyle;
     private GUIStyle sliderStyle;
     private GUIStyle thumbStyle;
+    private GUIStyle clockLabelStyle;
+    private GUIStyle clockTimeStyle;
     private Texture2D bgTex;
     private Texture2D accentTex;
     private Texture2D trackTex;
     private Texture2D thumbTex;
+
+    // Clock arc texture cache -- rebuilt whenever screen or clockSize changes
+    private Texture2D clockArcTex;
+    private int       clockTexSize;
+
     private bool stylesBuilt;
 
     // Editing state - local copy of the genome being edited
@@ -50,6 +62,9 @@ public class InspectorUI : MonoBehaviour
     const int RowH      = 26;
     const int PanelPadX = 10;
     const int PanelPadY = 8;
+
+    // Clock HUD margin from screen edge
+    const int ClockMargin = 12;
 
     void Start()
     {
@@ -67,12 +82,18 @@ public class InspectorUI : MonoBehaviour
     {
         if (!Input.GetMouseButtonUp(0)) return;
 
-        // Don't steal clicks that land inside the panel
+        // Don't steal clicks that land inside the inspector panel
         if (isEditing && selected != null)
         {
             int panelX = Screen.width - PanelW - 12;
-            if (Input.mousePosition.x > panelX) return; // click was in panel area
+            if (Input.mousePosition.x > panelX) return;
         }
+
+        // Don't steal clicks that land inside the clock HUD
+        int clockX = Screen.width  - clockSize - ClockMargin;
+        int clockY = ClockMargin;
+        Vector2 mouse2D = new (Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+        if (new Rect(clockX, clockY, clockSize, clockSize + 30).Contains(mouse2D)) return;
 
         Vector3 worldPos = cam.ScreenToWorldPoint(Input.mousePosition);
         Vector2 point    = new (worldPos.x, worldPos.y);
@@ -109,6 +130,8 @@ public class InspectorUI : MonoBehaviour
         if (!stylesBuilt) BuildStyles();
 
         DrawHUD();
+        DrawClockHUD();
+
         if (isEditing && selected != null && !selected.isDead)
             DrawInspectorPanel();
         else
@@ -123,16 +146,10 @@ public class InspectorUI : MonoBehaviour
     void DrawHUD()
     {
         int pop = CreatureManager.Instance != null ? CreatureManager.Instance.Population : 0;
+        string hudText = $"Population: {pop}";
 
-        // Day/night info
-        string timeStr = DayNightCycle.Instance != null
-            ? $"  {DayNightCycle.Instance.ClockString()} ({DayNightCycle.Instance.TimeLabel()})"
-            : "";
-
-        string hudText = $"Population: {pop}{timeStr}";
-
-        GUI.Box(new Rect(10, 10, 310, 30), GUIContent.none, boxStyle);
-        GUI.Label(new Rect(18, 14, 300, 26), hudText, labelStyle);
+        GUI.Box(new Rect(10, 10, 200, 30), GUIContent.none, boxStyle);
+        GUI.Label(new Rect(18, 14, 190, 26), hudText, labelStyle);
 
         // Temperature overlay toggle
         if (TemperatureMap.Instance != null)
@@ -146,6 +163,157 @@ public class InspectorUI : MonoBehaviour
         small.normal.textColor = new (0.7f, 0.7f, 0.7f, 1f);
         GUI.Label(new Rect(10, Screen.height - 26, 320, 22),
             "Click creature to inspect & edit its genome", small);
+    }
+
+    /* ======================================== Clock HUD ======================================== */
+
+    void DrawClockHUD()
+    {
+        if (DayNightCycle.Instance == null) return;
+
+        float phase     = DayNightCycle.Instance.Phase;
+        int   cx        = Screen.width  - clockSize - ClockMargin;
+        int   cy        = ClockMargin;
+        int   totalH    = clockSize + 28; // arc + two text rows
+
+        // Background pill
+        GUI.Box(new Rect(cx - 6, cy - 4, clockSize + 12, totalH + 8), GUIContent.none, boxStyle);
+
+        // Rebuild the arc texture when needed
+        if (clockArcTex == null || clockTexSize != clockSize)
+            RebuildClockTexture();
+
+        // Draw the base arc texture (baked track)
+        GUI.DrawTexture(new Rect(cx, cy, clockSize, clockSize), clockArcTex);
+
+        // Draw the sun/moon dot on top via a tiny colored box
+        DrawCelestialBody(phase, cx, cy);
+
+        // Time label centered below the arc
+        string timeStr = DayNightCycle.Instance.ClockString();
+        string labelStr = DayNightCycle.Instance.TimeLabel();
+
+        GUI.Label(new Rect(cx, cy + clockSize + 2,  clockSize, 18), timeStr,  clockTimeStyle);
+        GUI.Label(new Rect(cx, cy + clockSize + 18, clockSize, 14), labelStr, clockLabelStyle);
+    }
+
+    /// <summary>
+    /// Bakes the static arc track (the ring, horizon line, and tick marks) into a
+    /// reusable Texture2D so we are not redrawing it from scratch each frame.
+    /// </summary>
+    void RebuildClockTexture()
+    {
+        clockTexSize = clockSize;
+        int s = clockSize;
+
+        if (clockArcTex != null) Object.Destroy(clockArcTex);
+        clockArcTex = new Texture2D(s, s, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+        };
+
+        Color clear      = new (0f, 0f, 0f, 0f);
+        Color trackColor = new (0.30f, 0.30f, 0.40f, 0.70f);   // dim ring
+        Color tickColor  = new (0.55f, 0.55f, 0.65f, 0.80f);   // tick marks
+
+        float cx     = (s - 1) * 0.5f;
+        float cy     = (s - 1) * 0.5f;
+        float outerR = s * 0.46f;
+        float innerR = s * 0.38f;
+        float tickR  = s * 0.50f * 0.88f; // tick outer edge
+
+        for (int y = 0; y < s; y++)
+        for (int x = 0; x < s; x++)
+        {
+            float dx   = x - cx;
+            float dy   = y - cy;
+            float dist = Mathf.Sqrt(dx * dx + dy * dy);
+
+            // Donut ring
+            if (dist >= innerR && dist <= outerR)
+            {
+                // Only the upper semicircle (day arc) + a thin full ring
+                // Upper half = dy >= 0 in texture space (y >= cy), but we want the
+                // top of screen to be the top of the arc.  In Unity GUI Y increases
+                // downward, so "top" in GUI = small Y values = large dy values here
+                // (texture origin is bottom-left).  We draw the full ring as the track.
+                clockArcTex.SetPixel(x, y, trackColor);
+            }
+            else
+            {
+                clockArcTex.SetPixel(x, y, clear);
+            }
+        }
+
+        // Draw four small tick marks at N/E/S/W positions (representing 6am, noon, 6pm, midnight)
+        // Angles in standard math convention: 0 = right, 90 = up (we'll convert below).
+        // Day phases: midnight=0, dawn=0.25, noon=0.5, dusk=0.75
+        // We map phase -> angle where noon is at the top (90 deg), midnight at the bottom.
+        float[] tickPhases = { 0f, 0.25f, 0.5f, 0.75f };
+        foreach (float tp in tickPhases)
+        {
+            float angle = PhaseToAngleRad(tp);
+            // Tick goes from innerR-2 to outerR+2
+            for (float r = innerR - 2f; r <= outerR + 2f; r += 0.5f)
+            {
+                int tx = Mathf.RoundToInt(cx + Mathf.Cos(angle) * r);
+                int ty = Mathf.RoundToInt(cy + Mathf.Sin(angle) * r);
+                if (tx >= 0 && tx < s && ty >= 0 && ty < s)
+                    clockArcTex.SetPixel(tx, ty, tickColor);
+            }
+        }
+
+        clockArcTex.Apply();
+    }
+
+    /// <summary>
+    /// Convert a day phase [0,1] to a radian angle for placing items on the arc.
+    /// Noon (0.5) maps to the top of the circle (PI/2 in standard math).
+    /// Midnight (0/1) maps to the bottom (-PI/2).
+    /// </summary>
+    static float PhaseToAngleRad(float phase)
+    {
+        // phase 0.5 = top = 90 deg = PI/2
+        // phase 0.0 = bottom = -90 deg = -PI/2
+        // linear: angle = (phase - 0.5) * 2 * PI  shifted by PI/2
+        // Clockwise from top: angle = PI/2 - phase * 2 * PI
+        return Mathf.PI * 0.5f - phase * Mathf.PI * 2f;
+    }
+
+    void DrawCelestialBody(float phase, int clockX, int clockY)
+    {
+        int   s      = clockSize;
+        float cx     = s * 0.5f;
+        float cy     = s * 0.5f;
+        float bodyR  = s * 0.42f; // orbit radius (midpoint of the ring)
+        float dotR   = s * 0.07f; // visual radius of the dot
+
+        float angle = PhaseToAngleRad(phase);
+
+        // Position in texture space (origin bottom-left)
+        float texX = cx + Mathf.Cos(angle) * bodyR;
+        float texY = cy + Mathf.Sin(angle) * bodyR;
+
+        // Convert texture coords to GUI coords.
+        // Texture Y=0 is bottom; GUI Y=0 is top.  clockY is the GUI top of the widget.
+        float guiX = clockX + texX - dotR;
+        float guiY = clockY + (s - texY) - dotR; // flip Y
+
+        float dotDiam = dotR * 2f;
+
+        bool isDay = phase > 0.2f && phase < 0.8f;
+
+        // Sun: bright warm yellow; Moon: cool pale blue-white
+        Color dotColor = isDay
+            ? new Color(1.00f, 0.92f, 0.35f, 1f)   // sun
+            : new Color(0.78f, 0.88f, 1.00f, 1f);   // moon
+
+        // Draw the dot as a small colored box (IMGUI doesn't have circle primitives)
+        Color prev = GUI.color;
+        GUI.color  = dotColor;
+        GUI.Box(new Rect(guiX, guiY, dotDiam, dotDiam), GUIContent.none, boxStyle);
+        GUI.color  = prev;
     }
 
     /* ======================================== Inspector Panel ======================================== */
@@ -337,6 +505,22 @@ public class InspectorUI : MonoBehaviour
         thumbStyle.normal.background = thumbTex;
         thumbStyle.fixedWidth        = 10f;
         thumbStyle.fixedHeight       = 14f;
+
+        // Clock-specific styles
+        clockTimeStyle = new (GUI.skin.label)
+        {
+            fontSize  = 13,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            normal    = { textColor = textColor },
+        };
+
+        clockLabelStyle = new (GUI.skin.label)
+        {
+            fontSize  = 11,
+            alignment = TextAnchor.UpperCenter,
+            normal    = { textColor = new Color(0.60f, 0.65f, 0.80f, 1f) },
+        };
 
         stylesBuilt = true;
     }
