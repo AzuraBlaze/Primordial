@@ -224,6 +224,9 @@ MonoBehaviour:
   zoomSpeed: 3
   zoomSmoothSpeed: 8
   viewPadding: 5
+  followSmoothSpeed: 6
+  followZoom: 8
+  panBreakThreshold: 12
 --- !u!114 &519420035
 MonoBehaviour:
   m_ObjectHideFlags: 0
