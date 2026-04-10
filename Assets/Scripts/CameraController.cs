@@ -99,7 +99,7 @@ public class CameraController : MonoBehaviour
 
     void HandlePan()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && GUIUtility.hotControl == 0)
         {
             dragOrigin       = cam.ScreenToWorldPoint(Input.mousePosition);
             dragOriginScreen = Input.mousePosition;
