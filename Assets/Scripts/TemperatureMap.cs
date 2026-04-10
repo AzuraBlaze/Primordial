@@ -13,10 +13,10 @@ public class TemperatureMap : MonoBehaviour
 
     [Header("Generation")]
     [Tooltip("Perlin noise scale (larger = broader hot/cold regions).")]
-    public float noiseScale = 0.08f;
+    public float noiseScale = 0.01f;
 
     [Tooltip("Random seed offset. Change to get different maps.")]
-    public float seedOffset = 47.3f;
+    public float seedOffset = 0;
 
     [Header("Overlay")]
     [Tooltip("Show the temperature overlay.")]
@@ -24,7 +24,7 @@ public class TemperatureMap : MonoBehaviour
 
     [Tooltip("Maximum alpha of the color overlay (0 = invisible).")]
     [Range(0f, 0.5f)]
-    public float overlayAlpha = 0.25f;
+    public float overlayAlpha = 0.5f;
 
     public Color coldColor = new (0.2f, 0.5f, 1.0f, 1f);
     public Color hotColor  = new (1.0f, 0.2f, 0.1f, 1f);

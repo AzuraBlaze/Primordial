@@ -245,6 +245,7 @@ MonoBehaviour:
   accentColor: {r: 0.4, g: 0.85, b: 0.55, a: 1}
   headerColor: {r: 0.75, g: 0.9, b: 1, a: 1}
   sliderTrack: {r: 0.25, g: 0.25, b: 0.3, a: 1}
+  clockSize: 80
 --- !u!1 &560741721
 GameObject:
   m_ObjectHideFlags: 0
@@ -402,11 +403,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dayDuration: 120
   startPhase: 0.25
-  maxDarknessAlpha: 0.55
-  dawnColor: {r: 1, g: 0.75, b: 0.5, a: 1}
-  noonColor: {r: 1, g: 1, b: 1, a: 1}
-  duskColor: {r: 1, g: 0.6, b: 0.35, a: 1}
-  nightColor: {r: 0.1, g: 0.15, b: 0.4, a: 1}
 --- !u!4 &741013483
 Transform:
   m_ObjectHideFlags: 0
@@ -451,10 +447,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63064a2d113c4cae8ab8be5a3c9ea15a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseScale: 0.08
-  seedOffset: 47.3
+  noiseScale: 0.01
+  seedOffset: 0
   showOverlay: 1
-  overlayAlpha: 0.25
+  overlayAlpha: 1
   coldColor: {r: 0.2, g: 0.5, b: 1, a: 1}
   hotColor: {r: 1, g: 0.2, b: 0.1, a: 1}
 --- !u!4 &820153709
