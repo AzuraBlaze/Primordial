@@ -176,8 +176,8 @@ public class InspectorUI : MonoBehaviour
         if (DayNightCycle.Instance == null) return;
 
         float phase  = DayNightCycle.Instance.Phase;
-        int   cx     = Screen.width - clockSize - ClockMargin;
-        int   cy     = ClockMargin;
+        int   cx     = ClockMargin + 5;
+        int   cy     = 80;
         int   totalH = clockSize + 28; // arc + two text rows
 
         // Background pill

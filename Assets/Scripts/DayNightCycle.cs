@@ -58,8 +58,11 @@ public class DayNightCycle : MonoBehaviour
     public string ClockString()
     {
         int totalMinutes = Mathf.FloorToInt(Phase * 24f * 60f);
-        int h = totalMinutes / 60;
-        int m = totalMinutes % 60;
-        return $"{h:D2}:{m:D2}";
+        int h24 = totalMinutes / 60;
+        int m   = totalMinutes % 60;
+        string suffix = h24 < 12 ? "AM" : "PM";
+        int    h12    = h24 % 12;
+        if (h12 == 0) h12 = 12;
+        return $"{h12}:{m:D2} {suffix}";
     }
 }

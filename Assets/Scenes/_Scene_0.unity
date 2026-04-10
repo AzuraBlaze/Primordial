@@ -450,7 +450,7 @@ MonoBehaviour:
   noiseScale: 0.01
   seedOffset: 0
   showOverlay: 1
-  overlayAlpha: 1
+  overlayAlpha: 0.5
   coldColor: {r: 0.2, g: 0.5, b: 1, a: 1}
   hotColor: {r: 1, g: 0.2, b: 0.1, a: 1}
 --- !u!4 &820153709
