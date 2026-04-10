@@ -10,7 +10,7 @@ using UnityEngine;
 ///   - Click a creature to open its genome panel
 ///   - All genome traits are editable via sliders
 ///   - Stats (hunger, age) shown read-only
-///   - "Randomise" button re-rolls the genome
+///   - "Randomize" button re-rolls the genome
 /// </summary>
 public class InspectorUI : MonoBehaviour
 {
@@ -33,6 +33,7 @@ public class InspectorUI : MonoBehaviour
     private GUIStyle labelStyle;
     private GUIStyle headerStyle;
     private GUIStyle boxStyle;
+    private GUIStyle dividerStyle;
     private GUIStyle buttonStyle;
     private GUIStyle sliderStyle;
     private GUIStyle thumbStyle;
@@ -59,7 +60,8 @@ public class InspectorUI : MonoBehaviour
     private Vector2 scrollPos;
 
     // Panel layout constants
-    const int PanelW    = 240;
+    const int PanelW    = 425;
+    const int LabelH    = 25;   // label rect height, must exceed fontSize to avoid clipping
     const int SliderH   = 18;
     const int RowH      = 26;
     const int PanelPadX = 10;
@@ -151,7 +153,7 @@ public class InspectorUI : MonoBehaviour
         string hudText = $"Population: {pop}";
 
         GUI.Box(new Rect(10, 10, 200, 30), GUIContent.none, boxStyle);
-        GUI.Label(new Rect(18, 14, 190, 26), hudText, labelStyle);
+        GUI.Label(new Rect(18, 14, 190, LabelH), hudText, labelStyle);
 
         // Temperature overlay toggle
         if (TemperatureMap.Instance != null)
@@ -274,7 +276,7 @@ public class InspectorUI : MonoBehaviour
         };
 
         Color clear  = new (0f, 0f, 0f, 0f);
-        Color center = new (1.00f, 0.95f, 0.55f, 1f);   // warm yellow core
+        Color center = new (1.00f, 0.95f, 0.55f, 1f);    // warm yellow core
         Color ray    = new (1.00f, 0.88f, 0.40f, 0.85f); // slightly dimmer rays
 
         float cx    = (s - 1) * 0.5f;
@@ -404,7 +406,7 @@ public class InspectorUI : MonoBehaviour
                        + traitCount * RowH
                        + RowH * 3
                        + RowH * 2
-                       + 10;
+                       + 80;
 
         int panelH = Mathf.Min(contentH, Screen.height - 20);
         int panelX = Screen.width - PanelW - 12;
@@ -418,9 +420,10 @@ public class InspectorUI : MonoBehaviour
         GUI.Box(new Rect(panelX - 14, panelY + 4, 10, 10), GUIContent.none, boxStyle);
         GUI.color  = prev;
 
-        Rect outerRect = new (panelX + 2, panelY + 2, PanelW - 4, panelH - 4);
-        Rect innerRect = new (0, 0, PanelW - 20, contentH);
-        scrollPos = GUI.BeginScrollView(outerRect, scrollPos, innerRect, false, false);
+        Rect outerRect = new (panelX + 6, panelY + 6, PanelW - 12, panelH - 12);
+        // Rect innerRect = new (0, 0, PanelW - 20, contentH);
+        // scrollPos = GUI.BeginScrollView(outerRect, scrollPos, innerRect, false, false);
+        GUI.BeginGroup(outerRect);
 
         float y  = PanelPadY;
         float lx = PanelPadX;
@@ -433,8 +436,8 @@ public class InspectorUI : MonoBehaviour
                          : editGenome.diet < 0.67f ? "Omnivore" : "Carnivore";
         string timeLabel = editGenome.daylightPref < 0.35f ? "Nocturnal"
                          : editGenome.daylightPref > 0.65f ? "Diurnal" : "Crepuscular";
-        GUI.Label(new Rect(lx, y, lw, 18), $"{dietLabel}  |  {timeLabel}", labelStyle);
-        y += 20;
+        GUI.Label(new Rect(lx, y, lw, LabelH), $"{dietLabel}  |  {timeLabel}", labelStyle);
+        y += LabelH + 2;
 
         DrawDivider(lx, y, lw); y += 6;
 
@@ -444,35 +447,34 @@ public class InspectorUI : MonoBehaviour
 
         DrawDivider(lx, y, lw); y += 6;
 
-        GUI.Label(new Rect(lx, y, lw, 18), "GENOME", headerStyle);
-        y += 22;
+        GUI.Label(new Rect(lx, y, lw, LabelH), "GENOME", headerStyle);
+        y += LabelH + 4;
 
-        editGenome.speed         = DrawTraitSlider(ref y, lx, lw, "Speed",      editGenome.speed);
-        editGenome.size          = DrawTraitSlider(ref y, lx, lw, "Size",       editGenome.size);
-        editGenome.lifespan      = DrawTraitSlider(ref y, lx, lw, "Lifespan",   editGenome.lifespan);
-        editGenome.diet          = DrawTraitSlider(ref y, lx, lw, "Diet",       editGenome.diet);
-        editGenome.fertility     = DrawTraitSlider(ref y, lx, lw, "Fertility",  editGenome.fertility);
-        editGenome.vision        = DrawTraitSlider(ref y, lx, lw, "Vision",     editGenome.vision);
-        editGenome.aggression    = DrawTraitSlider(ref y, lx, lw, "Aggression", editGenome.aggression);
-        editGenome.fear          = DrawTraitSlider(ref y, lx, lw, "Fear",       editGenome.fear);
-        editGenome.flocking      = DrawTraitSlider(ref y, lx, lw, "Flocking",   editGenome.flocking);
-        editGenome.tempTolerance = DrawTraitSlider(ref y, lx, lw, "Temp Tol",   editGenome.tempTolerance);
-        editGenome.daylightPref  = DrawTraitSlider(ref y, lx, lw, "Day Pref",   editGenome.daylightPref);
+        editGenome.speed         = DrawTraitSlider(ref y, lx, lw, "Speed",                 editGenome.speed);
+        editGenome.size          = DrawTraitSlider(ref y, lx, lw, "Size",                  editGenome.size);
+        editGenome.lifespan      = DrawTraitSlider(ref y, lx, lw, "Lifespan",              editGenome.lifespan);
+        editGenome.diet          = DrawTraitSlider(ref y, lx, lw, "Diet",                  editGenome.diet);
+        editGenome.fertility     = DrawTraitSlider(ref y, lx, lw, "Fertility",             editGenome.fertility);
+        editGenome.vision        = DrawTraitSlider(ref y, lx, lw, "Vision",                editGenome.vision);
+        editGenome.aggression    = DrawTraitSlider(ref y, lx, lw, "Aggression",            editGenome.aggression);
+        editGenome.fear          = DrawTraitSlider(ref y, lx, lw, "Fear",                  editGenome.fear);
+        editGenome.flocking      = DrawTraitSlider(ref y, lx, lw, "Flocking",              editGenome.flocking);
+        editGenome.tempTolerance = DrawTraitSlider(ref y, lx, lw, "Temperature Tolerance", editGenome.tempTolerance);
+        editGenome.daylightPref  = DrawTraitSlider(ref y, lx, lw, "Day Preference",        editGenome.daylightPref);
 
         DrawDivider(lx, y, lw); y += 6;
 
         editGenome.hue        = DrawTraitSlider(ref y, lx, lw, "Hue",        editGenome.hue);
         editGenome.saturation = DrawTraitSlider(ref y, lx, lw, "Saturation", editGenome.saturation);
 
-        y += 4;
-        DrawDivider(lx, y, lw); y += 8;
+        y += 8;
 
         float bw = (lw - 4) / 2f;
 
         if (GUI.Button(new Rect(lx, y, bw, 24), "Apply", buttonStyle))
             selected.SetGenome(editGenome);
 
-        if (GUI.Button(new Rect(lx + bw + 4, y, bw, 24), "Randomise", buttonStyle))
+        if (GUI.Button(new Rect(lx + bw + 4, y, bw, 24), "Randomize", buttonStyle))
         {
             editGenome = Genome.Random();
             selected.SetGenome(editGenome);
@@ -486,33 +488,33 @@ public class InspectorUI : MonoBehaviour
             if (cameraController != null) cameraController.ReleaseFollow();
         }
 
-        GUI.EndScrollView();
+        GUI.EndGroup();
     }
 
     /* ======================================== Layout Helpers ======================================== */
 
     void DrawStatRow(ref float y, float x, float w, string label, string value)
     {
-        GUI.Label(new Rect(x, y, w * 0.55f, 18), label, labelStyle);
+        GUI.Label(new Rect(x, y, w * 0.55f, LabelH), label, labelStyle);
         GUIStyle valStyle = new (labelStyle);
         valStyle.normal.textColor = accentColor;
         valStyle.alignment        = TextAnchor.MiddleRight;
-        GUI.Label(new Rect(x + w * 0.45f, y, w * 0.55f, 18), value, valStyle);
+        GUI.Label(new Rect(x + w * 0.45f, y, w * 0.55f, LabelH), value, valStyle);
         y += RowH - 4;
     }
 
     float DrawTraitSlider(ref float y, float x, float w, string label, float value)
     {
-        GUI.Label(new Rect(x, y, w * 0.40f, 18), label, labelStyle);
+        GUI.Label(new Rect(x, y, w * 0.52f, LabelH), label, labelStyle);
         float newVal = GUI.HorizontalSlider(
-            new Rect(x + w * 0.40f, y + 3, w * 0.45f, SliderH),
+            new Rect(x + w * 0.52f, y + 3, w * 0.34f, SliderH),
             value, 0f, 1f, sliderStyle, thumbStyle
         );
 
         GUIStyle numStyle = new (labelStyle);
         numStyle.alignment = TextAnchor.MiddleRight;
         numStyle.fontSize  = 12;
-        GUI.Label(new Rect(x + w * 0.86f, y, w * 0.14f, 18), $"{newVal:F2}", numStyle);
+        GUI.Label(new Rect(x + w * 0.86f, y, w * 0.14f, LabelH), $"{newVal:F2}", numStyle);
 
         y += RowH;
         return newVal;
@@ -520,10 +522,7 @@ public class InspectorUI : MonoBehaviour
 
     void DrawDivider(float x, float y, float w)
     {
-        Color prev = GUI.color;
-        GUI.color  = new (0.3f, 0.3f, 0.35f, 0.8f);
-        GUI.Box(new Rect(x, y, w, 1), GUIContent.none);
-        GUI.color  = prev;
+        GUI.Box(new Rect(x, y, w, 1), GUIContent.none, dividerStyle);
     }
 
     string GetActivityStr()
@@ -546,6 +545,10 @@ public class InspectorUI : MonoBehaviour
         {
             normal = { background = bgTex }
         };
+
+        // Flat single-pixel style used exclusively by DrawDivider.
+        dividerStyle = new GUIStyle();
+        dividerStyle.normal.background = MakeTex(new Color(0.3f, 0.3f, 0.35f, 0.8f));
 
         labelStyle = new (GUI.skin.label)
         {
