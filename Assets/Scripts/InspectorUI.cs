@@ -178,7 +178,7 @@ public class InspectorUI : MonoBehaviour
         float phase  = DayNightCycle.Instance.Phase;
         int   cx     = ClockMargin + 5;
         int   cy     = 80;
-        int   totalH = clockSize + 28; // arc + two text rows
+        int   totalH = clockSize + 36; // arc + two text rows
 
         // Background pill
         GUI.Box(new Rect(cx - 6, cy - 4, clockSize + 12, totalH + 8), GUIContent.none, boxStyle);
@@ -196,7 +196,7 @@ public class InspectorUI : MonoBehaviour
         // Time and label below the arc
         GUI.Label(new Rect(cx, cy + clockSize + 2,  clockSize, 18),
             DayNightCycle.Instance.ClockString(), clockTimeStyle);
-        GUI.Label(new Rect(cx, cy + clockSize + 18, clockSize, 14),
+        GUI.Label(new Rect(cx, cy + clockSize + 18, clockSize, 18),
             DayNightCycle.Instance.TimeLabel(), clockLabelStyle);
     }
 
